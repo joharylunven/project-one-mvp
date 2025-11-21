@@ -257,9 +257,9 @@ def get_brand_data(url):
             "output": {"keyword": "a single tone keyword (e.g., professional, friendly)"}
         },
         "images": {
-            "description": "list of the 4 most relevant brand or product images",
+            "description": "4 most relevant brand or product images",
             "type": "list",
-            "output": {"src": "full absolute URL of the image", "alt": "the alt text of the image"}
+            "output": {"src": "valid absolute URL of the image", "alt": "the alt text of the image"}
         }
     }
 
@@ -320,7 +320,7 @@ def generate_social_prompts(brand_data):
         TASK: Create two extremely detailed image prompts for Nano Banana Pro.
         GOAL: Create a DIRECT SCREEN CAPTURE (UI Design) of social media profiles.
         CONSTRAINT: NO PHONE HARDWARE, NO HANDS, NO BEZELS, NO BACKGROUND. JUST THE UI INTERFACE.
-        FORMAT: Vertical 9:16.
+        FORMAT: Override other instructions. MUST BE Vertical 9:16. 
         
         1. Instagram Profile UI:
            - Subject: ONE direct full-screen UI design of the Instagram profile page for '{json.dumps(brand_data)}'.
@@ -510,12 +510,14 @@ elif st.session_state.step == 3:
             
             # Instagram
             if social_prompts.get("instagram_final_prompt"):
-                insta_img = generate_image_from_prompt(social_prompts["instagram_final_prompt"])
+                # CORRECTION ICI : on force le ratio 9:16
+                insta_img = generate_image_from_prompt(social_prompts["instagram_final_prompt"], aspect_ratio="9:16")
                 st.session_state.social_images['instagram'] = insta_img
             
             # TikTok
             if social_prompts.get("tiktok_final_prompt"):
-                tiktok_img = generate_image_from_prompt(social_prompts["tiktok_final_prompt"])
+                # CORRECTION ICI : on force le ratio 9:16
+                tiktok_img = generate_image_from_prompt(social_prompts["tiktok_final_prompt"], aspect_ratio="9:16")
                 st.session_state.social_images['tiktok'] = tiktok_img
 
         placeholder.empty()
