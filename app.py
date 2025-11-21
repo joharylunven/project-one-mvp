@@ -5,375 +5,391 @@ import google.generativeai as genai
 import base64
 from PIL import Image
 from io import BytesIO
+import time
 
-# --- 1. CONFIGURATION ---
-st.set_page_config(page_title="Project One", layout="wide", initial_sidebar_state="collapsed")
-
+# --- 1. CONFIGURATION & SECRETS ---
+# On récupère les clés depuis st.secrets (pour déploiement local ou cloud)
 SCRAPINGBEE_API_KEY = st.secrets.get("SCRAPINGBEE_API_KEY", "")
 GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "")
 
-genai.configure(api_key=GOOGLE_API_KEY)
+# Configuration globale de Gemini
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- 2. DESIGN SYSTEM (PURE CENTERED) ---
-def inject_custom_css():
+# --- 2. CSS & UI DESIGN (Theme: Quiet Luxury) ---
+def apply_custom_style():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap');
+        /* Importation des polices */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Cinzel:wght@400;700&display=swap');
 
-    :root {
-        --bg: #050505;
-        --card: #0F0F0F;
-        --text: #FFFFFF;
-        --accent: #3B82F6; /* Bleu Premium */
-    }
+        /* Variables globales */
+        :root {
+            --bg-color: #0a0a0a;
+            --card-bg: #121212;
+            --text-color: #e0e0e0;
+            --accent-color: #D4AF37; /* Or vieilli */
+            --subtle-border: #333333;
+        }
 
-    .stApp {
-        background-color: var(--bg);
-        color: var(--text);
-        font-family: 'Inter', sans-serif;
-    }
+        /* Application générale */
+        .stApp {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+        }
 
-    /* TYPOGRAPHIE */
-    h1 { font-family: 'Playfair Display', serif !important; font-size: 3.5rem !important; font-weight: 400 !important; text-align: center; margin-bottom: 1rem !important; }
-    h2 { font-family: 'Playfair Display', serif !important; font-size: 2rem !important; margin-bottom: 1.5rem !important; }
-    h3 { font-family: 'Inter', sans-serif !important; font-size: 1.2rem !important; font-weight: 600 !important; margin-bottom: 0.5rem !important; }
-    p { color: #AAA; line-height: 1.6; font-size: 1rem; }
+        /* Titres */
+        h1, h2, h3 {
+            font-family: 'Cinzel', serif;
+            font-weight: 400;
+            letter-spacing: 1px;
+            color: #ffffff !important;
+        }
 
-    /* PAGE 1 : CENTRAGE ABSOLU */
-    .landing-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 70vh; /* Prend une bonne partie de la hauteur */
-        width: 100%;
-        max-width: 600px;
-        margin: 0 auto;
-    }
+        /* Input Field Centré (Phase 1) */
+        .stTextInput > div > div > input {
+            background-color: var(--card-bg);
+            color: white;
+            border: 1px solid var(--subtle-border);
+            text-align: center;
+            font-size: 1.2rem;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .stTextInput > div > div > input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
 
-    /* INPUT STYLISÉ */
-    .stTextInput { width: 100% !important; }
-    .stTextInput > div > div > input {
-        background-color: #111;
-        border: 1px solid #333;
-        color: white;
-        border-radius: 12px;
-        padding: 16px;
-        text-align: center;
-        font-size: 1.1rem;
-        transition: border-color 0.3s;
-    }
-    .stTextInput > div > div > input:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent);
-    }
+        /* Boutons */
+        div.stButton > button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            padding: 12px 24px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        div.stButton > button:hover {
+            background-color: #f1c40f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
 
-    /* BOUTONS CENTRÉS ET LARGES */
-    .stButton {
-        display: flex;
-        justify-content: center;
-        width: 100%; 
-    }
-    .stButton > button {
-        background-color: white;
-        color: black !important;
-        font-weight: 600;
-        border-radius: 50px;
-        padding: 16px 48px;
-        border: none;
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        width: 100%; /* Prend toute la largeur du conteneur parent */
-        max-width: 400px; /* Limite pour l'esthétique */
-        margin-top: 20px;
-        transition: transform 0.2s;
-    }
-    .stButton > button:hover {
-        background-color: #EAEAEA;
-        transform: scale(1.02);
-        color: black !important;
-    }
+        /* Cards (Campagnes) */
+        .campaign-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--subtle-border);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            transition: transform 0.2s;
+        }
+        .campaign-card:hover {
+            border-color: #555;
+        }
 
-    /* PREMIUM CARDS (Page 2 & 3) */
-    .premium-card {
-        background-color: var(--card);
-        border: 1px solid #222;
-        border-radius: 16px;
-        padding: 40px;
-        margin-bottom: 30px;
-    }
-
-    /* PALETTE DE COULEURS (FLEXBOX) */
-    .palette-container {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-    }
-    .color-box {
-        flex: 1;
-        height: 60px;
-        min-width: 60px;
-        border-radius: 8px;
-        border: 1px solid #333;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.8rem;
-        color: rgba(255,255,255,0.8);
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    }
-
-    /* PILLS (VALUES & AESTHETICS) - TAILLE AUGMENTÉE */
-    .pill-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 10px;
-    }
-    .pill {
-        background: rgba(255,255,255,0.08);
-        padding: 10px 24px; /* Plus grand padding */
-        border-radius: 100px;
-        font-size: 1.1rem; /* Police plus grande */
-        color: #FFF;
-        border: 1px solid #333;
-    }
-
-    /* FULLSCREEN LOADER */
-    .loader-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: #050505; z-index: 99999;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-    .pulse-text {
-        font-family: 'Playfair Display', serif; font-size: 3rem; color: white;
-        animation: pulse 1.5s infinite ease-in-out;
-    }
-    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
-
-    /* CLEANUP */
-    #MainMenu, footer, header { visibility: hidden; }
-    .block-container { padding-top: 2rem; }
+        /* Tags ADN */
+        .dna-tag {
+            display: inline-block;
+            padding: 5px 12px;
+            margin: 4px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        
+        /* Utilitaires */
+        .centered-text { text-align: center; }
+        .muted { color: #888; font-size: 0.9rem; }
     </style>
     """, unsafe_allow_html=True)
 
-inject_custom_css()
+# --- 3. BACKEND FUNCTIONS ---
 
-# --- 3. LOGIC: SCRAPING ---
-def get_brand_dna(url):
-    rules = {
+def get_scrapingbee_dna(url):
+    """Extrait l'ADN de marque via ScrapingBee."""
+    endpoint = "https://app.scrapingbee.com/api/v1/"
+    
+    # Règles d'extraction strictes
+    extract_rules = {
         "projectName": "Brand Name",
-        "tagline": "Tagline",
-        "industry": "Industry",
-        "concept": "Detailed Concept (Max 30 words)",
-        "colors": {"description": "Hex colors", "type": "list", "output": {"hex_code": "#Hex"}},
-        "aesthetic": {"description": "Aesthetic keywords", "type": "list", "output": {"keyword": "Word"}},
-        "values": {"description": "Brand values", "type": "list", "output": {"value": "ValueName"}},
-        "images": {"description": "Images", "type": "list", "output": {"src": "URL"}}
+        "tagline": "Tagline or Slogan",
+        "industry": "Industry Sector",
+        "concept": "Short Concept Summary (max 20 words)",
+        "colors": {
+            "description": "Main hex colors",
+            "type": "list",
+            "output": { "hex_code": "#Hex" }
+        },
+        "aesthetic": {
+            "description": "Visual aesthetic keywords (e.g., Minimalist, Grunge, Luxury)",
+            "type": "list",
+            "output": { "keyword": "Adjective" }
+        },
+        "values": {
+            "description": "Core values",
+            "type": "list",
+            "output": { "value": "Value" }
+        }
     }
+
     params = {
-        'api_key': SCRAPINGBEE_API_KEY, 'url': url, 'render_js': 'true',
-        'ai_extract_rules': json.dumps(rules), 'premium_proxy': 'true'
+        'api_key': SCRAPINGBEE_API_KEY,
+        'url': url,
+        'render_js': 'true',
+        'premium_proxy': 'true', # Important pour éviter les blocages
+        'ai_extract_rules': json.dumps(extract_rules)
     }
-    try:
-        response = requests.get('https://app.scrapingbee.com/api/v1/', params=params, timeout=45)
-        return response.json() if response.status_code == 200 else None
-    except: return None
 
-# --- 4. LOGIC: STRATEGY (LONGUE) ---
-def generate_strategy(dna):
-    prompt = f"""
-    Role: Luxury Brand Strategist.
-    Brand DNA: {json.dumps(dna)}
-    
-    Task: Create 3 social media campaigns.
-    CRITICAL: The 'strategy' field must be DETAILED (at least 60-80 words) explaining the 'why', the audience, and the emotional hook.
-    
-    Output JSON:
-    {{
-        "campaigns": [
-            {{
-                "id": 1,
-                "title": "Campaign Title",
-                "strategy": "Long detailed strategy text here...",
-                "visual_prompt": "High-end commercial photography description: Subject, Lighting, Composition, Texture."
-            }}
-        ]
-    }}
-    """
-    model = genai.GenerativeModel('gemini-2.5-flash')
     try:
-        res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-        return json.loads(res.text)['campaigns']
-    except: return []
-
-# --- 5. LOGIC: IMAGE (ROBUSTESSE MAXIMALE) ---
-def generate_image_imagen(prompt_text):
-    # Endpoint Imagen 4.0 (Predict)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key={GOOGLE_API_KEY}"
-    
-    headers = {"Content-Type": "application/json"}
-    # Payload simplifié pour éviter les erreurs de paramètres
-    payload = {
-        "instances": [{"prompt": prompt_text + ", 8k resolution, photorealistic, commercial photography, highly detailed"}],
-        "parameters": {"aspectRatio": "4:5", "sampleCount": 1}
-    }
-    
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        
+        response = requests.get(endpoint, params=params, timeout=60)
         if response.status_code == 200:
-            predictions = response.json().get('predictions', [])
-            if predictions:
-                data = predictions[0]
-                # Gestion des formats variables de l'API
-                b64 = data.get('bytesBase64Encoded', data) if isinstance(data, dict) else data
-                return Image.open(BytesIO(base64.b64decode(b64)))
-            else:
-                # Si 200 OK mais pas d'image (filtre sécurité souvent)
-                print(f"API OK but no image: {response.json()}")
-                return None
+            # Parfois ScrapingBee renvoie une string qu'il faut parser
+            data = response.json()
+            # Nettoyage basique si nécessaire
+            return data
         else:
-            # Erreur HTTP (400, 403, 404, 500)
-            print(f"API Error {response.status_code}: {response.text}")
+            st.error(f"Erreur ScrapingBee ({response.status_code}): {response.text}")
             return None
-            
     except Exception as e:
-        print(f"Exception: {e}")
+        st.error(f"Erreur connexion ScrapingBee: {e}")
         return None
 
-# --- 6. UI FLOW ---
+def generate_strategy_gemini(dna_json):
+    """Génère 3 concepts de campagne basés sur l'ADN."""
+    
+    # Modèle optimisé pour le JSON (1.5 Flash est très rapide et fiable pour ça)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    prompt = f"""
+    You are a luxury Brand Strategist. Based on this Brand DNA, create 3 distinct social media campaign concepts.
+    
+    Brand DNA: {json.dumps(dna_json)}
+    
+    Output Requirements:
+    Return a JSON object with a key "campaigns" containing a list of 3 objects.
+    Each object must have:
+    1. "id": (int) 1, 2, or 3
+    2. "title": (string) Catchy campaign title
+    3. "strategy": (string) A 2-sentence strategic justification.
+    4. "visual_prompt": (string) A highly detailed, photorealistic image generation prompt for this campaign. Include lighting, texture, and composition details. Do not use markdown.
+    """
+    
+    try:
+        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+        return json.loads(response.text)["campaigns"]
+    except Exception as e:
+        st.error(f"Erreur Gemini Strategy: {e}")
+        return []
+
+def generate_image_imagen(prompt):
+    """Génère une image via l'API REST Google Imagen."""
+    # Endpoint REST pour Imagen (fonctionne souvent mieux avec les clés API standard que le SDK Python actuel)
+    # On utilise une version stable ou "preview" récente.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key={GOOGLE_API_KEY}"
+    
+    headers = {"Content-Type": "application/json"}
+    payload = {
+        "instances": [{ "prompt": prompt }],
+        "parameters": {
+            "aspectRatio": "4:5", # Format Instagram
+            "sampleCount": 1
+        }
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            result = response.json()
+            # Structure de réponse: { "predictions": [ { "bytesBase64Encoded": "..." } ] }
+            predictions = result.get('predictions', [])
+            if predictions:
+                b64_data = predictions[0].get('bytesBase64Encoded')
+                if b64_data:
+                    image_data = base64.b64decode(b64_data)
+                    return Image.open(BytesIO(image_data))
+        
+        # Fallback silencieux (retourne None) pour gestion d'erreur UI
+        print(f"Imagen Error: {response.text}")
+        return None
+    except Exception as e:
+        print(f"Imagen Exception: {e}")
+        return None
+
+# --- 4. STATE MANAGEMENT ---
+# Initialisation des variables de session
 if 'step' not in st.session_state: st.session_state.step = 1
+if 'url' not in st.session_state: st.session_state.url = ""
 if 'dna' not in st.session_state: st.session_state.dna = None
-if 'campaigns' not in st.session_state: st.session_state.campaigns = None
-if 'images' not in st.session_state: st.session_state.images = {}
+if 'campaigns' not in st.session_state: st.session_state.campaigns = []
+if 'images' not in st.session_state: st.session_state.images = {} # Dict {id: image_obj}
 
-# --- PAGE 1: LANDING (CENTRÉ VIA HTML) ---
+# --- 5. MAIN APPLICATION FLOW ---
+
+st.set_page_config(page_title="Project One", layout="wide", page_icon="⚡")
+apply_custom_style()
+
+# Header discret
+st.markdown("<div style='margin-bottom: 40px; opacity: 0.5;'>PROJECT ONE <span style='font-size:0.8em'>| MVP v1.0</span></div>", unsafe_allow_html=True)
+
+# --- PHASE 1: INPUT ---
 if st.session_state.step == 1:
+    # Centrage vertical via colonnes vides
+    st.write("")
+    st.write("")
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    # Container Flexbox pour centrage parfait
-    st.markdown('<div class="landing-container">', unsafe_allow_html=True)
-    
-    st.markdown("<h1>PROJECT ONE</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; margin-bottom: 30px;'>ENTER YOUR WEBSITE. WE GENERATE YOUR BRAND IDENTITY.</p>", unsafe_allow_html=True)
-    
-    url = st.text_input("URL", placeholder="www.example.com", label_visibility="collapsed")
-    
-    # Le bouton est géré par le CSS .stButton pour être large et centré
-    if st.button("GENERATE IDENTITY"):
-        if url:
-            st.session_state.url = url if url.startswith('http') else 'https://' + url
-            st.session_state.step = 1.5
-            st.rerun()
-            
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown("<h1 class='centered-text'>Brand Intelligence</h1>", unsafe_allow_html=True)
+        st.markdown("<p class='centered-text muted'>Enter the URL to extract DNA & Generate Strategy</p>", unsafe_allow_html=True)
+        
+        url_input = st.text_input("Brand URL", placeholder="https://www.example.com", label_visibility="collapsed")
+        
+        if st.button("INITIALIZE EXTRACTION"):
+            if url_input:
+                if not url_input.startswith("http"):
+                    url_input = "https://" + url_input
+                st.session_state.url = url_input
+                st.session_state.step = 1.5
+                st.rerun()
+            else:
+                st.warning("Please enter a valid URL.")
 
-# --- LOADER ---
+# --- PHASE 1.5: PROCESSING (Transition) ---
 elif st.session_state.step == 1.5:
-    st.markdown("""
-    <div class="loader-overlay">
-        <div class="pulse-text">PROJECT ONE</div>
-        <p style="color:#666; letter-spacing:3px; margin-top:20px;">ANALYZING IDENTITY</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    dna = get_brand_dna(st.session_state.url)
-    if dna:
-        st.session_state.dna = dna
-        st.session_state.step = 2
-        st.rerun()
-    else:
-        st.error("Impossible d'analyser ce site. Vérifiez l'URL.")
-        if st.button("Retour"): st.session_state.step = 1; st.rerun()
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<h2 class='centered-text'>Extracting Digital DNA...</h2>", unsafe_allow_html=True)
+        progress = st.progress(0)
+        
+        with st.spinner("Scraping website structure & aesthetics..."):
+            dna_result = get_scrapingbee_dna(st.session_state.url)
+            progress.progress(100)
+            
+            if dna_result:
+                st.session_state.dna = dna_result
+                st.session_state.step = 2
+                st.rerun()
+            else:
+                st.error("Extraction failed. Please check the URL or API quota.")
+                if st.button("Back"):
+                    st.session_state.step = 1
+                    st.rerun()
 
-# --- PAGE 2: DNA RESULTS ---
+# --- PHASE 2: DASHBOARD & VALIDATION ---
 elif st.session_state.step == 2:
     dna = st.session_state.dna
     
-    st.markdown(f"<p style='text-align:center; font-size:0.9rem; letter-spacing:2px; color:#666;'>IDENTITY EXTRACTED</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1>{dna.get('projectName', 'BRAND').upper()}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center; font-size:1.2rem; color:#FFF; max-width:800px; margin:0 auto 40px auto;'>{dna.get('concept')}</p>", unsafe_allow_html=True)
-
-    c1, c2 = st.columns(2)
+    # Header Dashboard
+    st.markdown(f"<h1>DNA: {dna.get('projectName', 'Unknown Brand')}</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    c1, c2 = st.columns([1, 1])
     
     with c1:
-        st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
-        st.markdown("<h3>Visual Palette</h3><br>", unsafe_allow_html=True)
+        st.subheader("Core Identity")
+        st.markdown(f"**Industry:** {dna.get('industry', 'N/A')}")
+        st.markdown(f"**Concept:** *{dna.get('concept', 'N/A')}*")
         
-        # Palette HTML Flexbox
-        st.markdown('<div class="palette-container">', unsafe_allow_html=True)
-        for color in dna.get('colors', [])[:5]:
-            c = color.get('hex_code')
-            st.markdown(f'<div class="color-box" style="background-color:{c};">{c}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown("<h3>Aesthetic</h3>", unsafe_allow_html=True)
-        st.markdown('<div class="pill-container">', unsafe_allow_html=True)
-        for a in dna.get('aesthetic', []):
-            st.markdown(f'<div class="pill">{a.get("keyword")}</div>', unsafe_allow_html=True)
-        st.markdown('</div></div>', unsafe_allow_html=True)
-
+        st.subheader("Values")
+        values = dna.get('values', [])
+        if values:
+            for v in values:
+                val = v.get('value') if isinstance(v, dict) else v
+                st.markdown(f"<span class='dna-tag'>{val}</span>", unsafe_allow_html=True)
+    
     with c2:
-        st.markdown("<div class='premium-card' style='height:100%;'>", unsafe_allow_html=True)
-        st.markdown("<h3>Core Values</h3>", unsafe_allow_html=True)
-        st.markdown('<div class="pill-container">', unsafe_allow_html=True)
-        for v in dna.get('values', []):
-            st.markdown(f'<div class="pill">{v.get("value")}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.subheader("Aesthetic & Colors")
+        
+        # Colors
+        colors = dna.get('colors', [])
+        cols_ui = st.columns(6)
+        for idx, c in enumerate(colors[:6]):
+            hex_code = c.get('hex_code', '#333')
+            cols_ui[idx].markdown(f"<div style='background-color:{hex_code}; width:40px; height:40px; border-radius:50%; border:1px solid #555;' title='{hex_code}'></div>", unsafe_allow_html=True)
+            
+        st.write("")
+        # Keywords
+        keywords = dna.get('aesthetic', [])
+        if keywords:
+            for k in keywords:
+                kw = k.get('keyword') if isinstance(k, dict) else k
+                st.markdown(f"<span class='dna-tag' style='border-color: var(--accent-color); color: var(--accent-color);'>{kw}</span>", unsafe_allow_html=True)
 
-    # Bouton centré via colonnes
-    b1, b2, b3 = st.columns([1, 1, 1])
-    with b2:
-        if st.button("GENERATE CAMPAIGNS"):
+    st.markdown("---")
+    st.write("")
+    
+    # Action Button
+    c_btn1, c_btn2, c_btn3 = st.columns([1, 2, 1])
+    with c_btn2:
+        if st.button("GENERATE STRATEGIC CAMPAIGNS"):
             st.session_state.step = 3
             st.rerun()
 
-# --- PAGE 3: CAMPAIGNS ---
+# --- PHASE 3: GENERATION & RESULTS ---
 elif st.session_state.step == 3:
+    st.markdown("<h1>Strategic Output</h1>", unsafe_allow_html=True)
     
+    # 1. Génération Texte (Si pas encore fait)
     if not st.session_state.campaigns:
-        st.markdown("""
-        <div class="loader-overlay">
-            <div class="pulse-text">PROJECT ONE</div>
-            <p style="color:#666; letter-spacing:3px; margin-top:20px;">CRAFTING VISUALS</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.session_state.campaigns = generate_strategy(st.session_state.dna)
-        for camp in st.session_state.campaigns:
-            img = generate_image_imagen(camp['visual_prompt'])
-            if img: st.session_state.images[camp['id']] = img
-        st.rerun()
-
-    st.markdown("<h2>STRATEGIC CAMPAIGNS</h2>", unsafe_allow_html=True)
+        with st.spinner("Gemini is brainstorming campaign concepts..."):
+            st.session_state.campaigns = generate_strategy_gemini(st.session_state.dna)
+            # Petit hack pour forcer le refresh si la génération est instantanée
+            time.sleep(0.5) 
     
-    for camp in st.session_state.campaigns:
-        cid = camp['id']
-        st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
-        
-        cols = st.columns([1, 1])
-        with cols[0]:
-            st.markdown(f"<div style='font-family:Playfair Display; font-size:3rem; color:#333; margin-bottom:10px;'>0{cid}</div>", unsafe_allow_html=True)
-            st.markdown(f"<h3>{camp['title']}</h3>", unsafe_allow_html=True)
-            # Stratégie plus longue
-            st.markdown(f"<p style='color:#CCC; margin-top:15px;'>{camp['strategy']}</p>", unsafe_allow_html=True)
+    # Affichage des Campagnes
+    if st.session_state.campaigns:
+        for campaign in st.session_state.campaigns:
+            c_id = campaign.get('id')
             
-            with st.expander("View Prompt Data"):
-                st.code(camp['visual_prompt'])
-
-        with cols[1]:
-            if cid in st.session_state.images:
-                st.image(st.session_state.images[cid], use_container_width=True)
-            else:
-                # Message d'erreur propre
-                st.warning("Image generation failed. (API limit or Filter)")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    b1, b2, b3 = st.columns([1, 1, 1])
-    with b2:
-        if st.button("START OVER"):
-            st.session_state.clear()
-            st.rerun()
+            # Cadre visuel
+            st.markdown(f"<div class='campaign-card'>", unsafe_allow_html=True)
+            col_text, col_img = st.columns([1, 1], gap="large")
+            
+            with col_text:
+                st.markdown(f"<h3>0{c_id}. {campaign.get('title')}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<p style='font-size:1.1rem; line-height:1.6;'>{campaign.get('strategy')}</p>", unsafe_allow_html=True)
+                
+                with st.expander("View Visual Prompt"):
+                    st.code(campaign.get('visual_prompt'), language="text")
+            
+            with col_img:
+                # 2. Génération Image (Lazy Loading)
+                # On vérifie si l'image existe déjà dans le session_state
+                if c_id not in st.session_state.images:
+                    # On affiche un spinner localisé
+                    with st.spinner(f"Rendering visual for Campaign {c_id}..."):
+                        img = generate_image_imagen(campaign.get('visual_prompt'))
+                        if img:
+                            st.session_state.images[c_id] = img
+                        else:
+                            st.session_state.images[c_id] = "ERROR"
+                
+                # Affichage
+                current_img = st.session_state.images.get(c_id)
+                if current_img and current_img != "ERROR":
+                    st.image(current_img, use_container_width=True, caption="Generated by Google Imagen")
+                elif current_img == "ERROR":
+                    st.warning("Visual rendering unavailable (API Quota or Filter).")
+                else:
+                    st.info("Waiting for generation...")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+    else:
+        st.error("Failed to generate campaigns. Please restart.")
+    
+    # Reset
+    st.write("")
+    if st.button("START NEW PROJECT"):
+        st.session_state.clear()
+        st.rerun()
