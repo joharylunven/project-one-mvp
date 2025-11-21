@@ -323,12 +323,12 @@ def generate_social_prompts(brand_data):
         FORMAT: Vertical 9:16.
         
         1. Instagram Profile UI:
-           - Subject: Direct full-screen UI design of the Instagram profile page for '{brand_data.get('projectName')}'.
+           - Subject: One direct full-screen UI design of the Instagram profile page for '{json.dumps(brand_data)}'.
            - Details: Professional Bio, Highlights circles with photos matching brand colors {brand_data.get('colors')}, 3-column grid with high-end photography.
            - Style: Flat design, 100% Instagram UI like, Digital Interface, 8k resolution, Figma export style.
 
         2. TikTok Profile UI:
-           - Subject: Direct full-screen UI design of the TikTok profile page for '{brand_data.get('projectName')}'.
+           - Subject: One direct full-screen UI design of the TikTok profile page for '{json.dumps(brand_data)}'.
            - Details: User handle, 'Edit Profile' button, 3-column video grid with viral-style thumbnails.
            - Style: 100% like TikTok interface/UI, Dark/Light mode adapted to brand, Digital Interface, 8k resolution.
 
