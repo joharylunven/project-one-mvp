@@ -5,20 +5,20 @@ import google.generativeai as genai
 import time
 
 # --- CONFIGURATION ---
-st.set_page_config(page_title="Brand AI Generator", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Project One", layout="wide", initial_sidebar_state="collapsed")
 
 # Load API Keys
 try:
     SCRAPINGBEE_API_KEY = st.secrets["SCRAPINGBEE_API_KEY"]
     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 except FileNotFoundError:
-    st.error("API Keys are missing. Please configure SCRAPINGBEE_API_KEY and GOOGLE_API_KEY in .streamlit/secrets.toml")
+    st.error("API Keys are missing. Please configure SCRAPINGBEE_API_KEY and GOOGLE_API_KEY.")
     st.stop()
 
 # Configure Gemini
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- CSS FOR DARK THEME & STYLING ---
+# --- CSS FOR PROJECT ONE THEME ---
 st.markdown("""
 <style>
     /* --- GLOBAL DARK THEME --- */
@@ -31,6 +31,7 @@ st.markdown("""
         color: #ffffff !important;
         font-family: 'Inter', sans-serif;
         font-weight: 600;
+        letter-spacing: -0.5px;
     }
     
     p, div, label {
@@ -39,39 +40,68 @@ st.markdown("""
     }
 
     /* --- FULL SCREEN TRANSITION (LOADING) --- */
-    div[data-testid="stSpinner"] {
+    /* Custom Loading Overlay */
+    .stSpinner {
+        display: none !important; /* Hide default spinner */
+    }
+    
+    .custom-loader {
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: #0e1117; /* Match background */
+        background-color: #0e1117;
         z-index: 999999;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
-        flex-direction: column;
     }
     
-    /* Spinner Icon Color */
-    div[data-testid="stSpinner"] > div {
-        border-top-color: #3b82f6 !important; /* Blue Spinner */
+    .loader-ring {
+        display: inline-block;
+        width: 60px;
+        height: 60px;
+        margin-bottom: 20px;
+    }
+    .loader-ring:after {
+        content: " ";
+        display: block;
+        width: 50px;
+        height: 50px;
+        margin: 8px;
+        border-radius: 50%;
+        border: 4px solid #3b82f6;
+        border-color: #3b82f6 transparent #3b82f6 transparent;
+        animation: ring-spin 1.2s linear infinite;
+    }
+    @keyframes ring-spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loader-text {
+        font-size: 1.2rem;
+        color: #fff;
+        font-weight: 500;
+        letter-spacing: 0.5px;
     }
 
-    /* --- CHIP/BADGE STYLING (Les encadrés) --- */
+    /* --- CHIP/BADGE STYLING --- */
     .chip-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 5px;
+        gap: 10px;
+        margin-top: 8px;
     }
     
     .chip {
-        background-color: #1f2937; /* Darker Gray */
-        border: 1px solid #3b82f6; /* Blue Border */
+        background-color: #161b22; /* Dark Card BG */
+        border: 1px solid #30363d; /* Subtle Border */
         color: #eff6ff;
-        padding: 6px 14px;
-        border-radius: 20px;
+        padding: 8px 16px;
+        border-radius: 4px; /* Squared corners for professional look */
         font-size: 0.9rem;
         font-weight: 500;
         display: inline-block;
@@ -81,7 +111,7 @@ st.markdown("""
     .st-card {
         background-color: #161b22;
         border: 1px solid #30363d;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 24px;
         margin-bottom: 24px;
     }
@@ -90,13 +120,13 @@ st.markdown("""
     .color-swatch {
         width: 100%;
         height: 60px;
-        border-radius: 8px;
+        border-radius: 4px;
         margin-bottom: 6px;
         border: 1px solid #444;
     }
     .color-label {
         font-size: 0.75rem;
-        color: #aaa;
+        color: #888;
         font-family: monospace;
         text-align: center;
     }
@@ -106,12 +136,14 @@ st.markdown("""
         width: 100%;
         height: 180px;
         object-fit: cover;
-        border-radius: 8px;
+        border-radius: 4px;
         opacity: 0.9;
         transition: opacity 0.3s;
+        border: 1px solid #30363d;
     }
     .brand-img:hover {
         opacity: 1;
+        border-color: #3b82f6;
     }
 
     /* --- BUTTONS --- */
@@ -119,9 +151,10 @@ st.markdown("""
         background-color: #3b82f6; /* Blue Button */
         color: white;
         border: none;
-        border-radius: 8px;
+        border-radius: 4px;
         font-weight: 600;
         padding: 0.6rem 1.2rem;
+        transition: background 0.2s;
     }
     .stButton button:hover {
         background-color: #2563eb;
@@ -131,6 +164,8 @@ st.markdown("""
     .streamlit-expanderHeader {
         background-color: #161b22;
         color: #fff;
+        border: 1px solid #30363d;
+        border-radius: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -198,13 +233,13 @@ def get_brand_data(url):
         return None
 
 def generate_campaign_strategy(brand_data):
-    """Generates campaigns using Gemini 1.5 Flash (More reliable availability)."""
+    """Generates campaigns using Gemini 2.0 Flash."""
     try:
-        # Switched to 1.5-flash to fix 404 Not Found on Pro
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Updated to available model in your list
+        model = genai.GenerativeModel('models/gemini-2.0-flash')
         
         prompt = f"""
-        Act as a Senior Creative Director for a luxury agency.
+        Act as a Senior Creative Director.
         
         Brand Analysis JSON:
         {json.dumps(brand_data)}
@@ -213,7 +248,7 @@ def generate_campaign_strategy(brand_data):
         Create 3 high-end marketing campaign concepts.
         For each, construct a detailed image generation prompt for a smartphone mockup.
 
-        OUTPUT FORMAT (JSON LIST):
+        OUTPUT FORMAT (Strict JSON List):
         [
           {{
             "campaign_name": "Title",
@@ -229,13 +264,14 @@ def generate_campaign_strategy(brand_data):
         return json.loads(response.text)
         
     except Exception as e:
-        st.error(f"Gemini Strategy Generation Error: {e}")
+        st.error(f"Strategy Generation Error: {e}")
         return []
 
 def generate_image_from_prompt(prompt_text):
-    """Generates image using Imagen 3."""
+    """Generates image using Imagen 4 (Preview)."""
     try:
-        model = genai.GenerativeModel('imagen-3.0-generate-001')
+        # Using the specific model ID from your list
+        model = genai.GenerativeModel('models/imagen-4.0-generate-preview-06-06')
         
         result = model.generate_images(
             prompt=prompt_text,
@@ -248,7 +284,13 @@ def generate_image_from_prompt(prompt_text):
         return None
     except Exception as e:
         print(f"Image Gen Error: {e}")
-        return None
+        # Fallback attempt if 4.0 specific syntax differs in library version
+        try:
+             model = genai.GenerativeModel('models/imagen-3.0-generate-001')
+             result = model.generate_images(prompt=prompt_text)
+             return result.images[0].image
+        except:
+             return None
 
 # --- HELPER: Chip Renderer ---
 def render_chips(items, key_name='keyword'):
@@ -264,6 +306,15 @@ def render_chips(items, key_name='keyword'):
     html += '</div>'
     st.markdown(html, unsafe_allow_html=True)
 
+# --- CUSTOM LOADING SCREEN FUNCTION ---
+def full_screen_loader(text):
+    st.markdown(f"""
+        <div class="custom-loader">
+            <div class="loader-ring"></div>
+            <div class="loader-text">{text}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
 # --- STATE ---
 if 'step' not in st.session_state:
     st.session_state.step = 1
@@ -275,22 +326,31 @@ if 'campaigns' not in st.session_state:
 # --- PAGE 1: INPUT ---
 if st.session_state.step == 1:
     st.markdown("<div style='height: 30vh;'></div>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; font-size: 3rem;'>🧬 Brand DNA & AI Strategy</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #888;'>Enter your URL to extract identity and generate campaigns.</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-size: 3rem;'>Project One</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #888;'>Automated Brand Intelligence & Strategy</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         url_input = st.text_input("URL", placeholder="ex: www.spacex.com", label_visibility="collapsed")
         st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
         
-        if st.button("Initialize Analysis", use_container_width=True):
+        if st.button("Analyze Brand", use_container_width=True):
             if url_input:
-                with st.spinner("📡 Intercepting signal... Decoding brand architecture..."):
-                    data = get_brand_data(url_input)
-                    if data:
-                        st.session_state.brand_data = data
-                        st.session_state.step = 2
-                        st.rerun()
+                # Show custom loader
+                placeholder = st.empty()
+                with placeholder:
+                    full_screen_loader("Analyzing Digital Footprint...")
+                
+                # Logic
+                data = get_brand_data(url_input)
+                
+                # Clear loader
+                placeholder.empty()
+                
+                if data:
+                    st.session_state.brand_data = data
+                    st.session_state.step = 2
+                    st.rerun()
 
 # --- PAGE 2: DASHBOARD ---
 elif st.session_state.step == 2:
@@ -305,24 +365,24 @@ elif st.session_state.step == 2:
     col1, col2 = st.columns([1.5, 1])
     
     with col1:
-        st.markdown("### 👁️ Core Identity")
+        st.markdown("### Core Identity")
         st.markdown(f"**Industry:** <span style='color:#ccc'>{data.get('industry', 'N/A')}</span>", unsafe_allow_html=True)
         st.markdown(f"**Concept:** <span style='color:#ccc'>{data.get('concept', 'N/A')}</span>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 💎 Brand Values")
+        st.markdown("### Brand Values")
         render_chips(data.get('values', []), key_name='value')
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 🗣️ Tone of Voice")
+        st.markdown("### Tone of Voice")
         render_chips(data.get('tone', []), key_name='keyword')
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### ✨ Aesthetics")
+        st.markdown("### Aesthetics")
         render_chips(data.get('aesthetic', []), key_name='keyword')
 
     with col2:
-        st.markdown("### 🎨 Palette")
+        st.markdown("### Palette")
         if data.get('colors'):
             # Grid for colors
             cols = st.columns(3)
@@ -333,15 +393,15 @@ elif st.session_state.step == 2:
                     st.markdown(f"<div class='color-label'>{hex_code}</div>", unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### ✒️ Typography")
+        st.markdown("### Typography")
         if data.get('fonts'):
             for f in data['fonts']:
-                st.markdown(f"<div style='background:#161b22; padding:8px; border-radius:6px; margin-bottom:5px; border-left: 3px solid #3b82f6;'>{f.get('font_name')} <span style='opacity:0.5; font-size:0.8em'>({f.get('use')})</span></div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='background:#161b22; padding:8px; border-radius:4px; margin-bottom:5px; border-left: 3px solid #3b82f6;'>{f.get('font_name')} <span style='opacity:0.5; font-size:0.8em'>({f.get('use')})</span></div>", unsafe_allow_html=True)
 
     # Row 2: Visuals (Conditional)
     if data.get('images') and len(data['images']) > 0:
         st.markdown("---")
-        st.markdown("### 📸 Visual Assets")
+        st.markdown("### Visual Assets")
         
         img_list = [img.get('src') for img in data['images'] if img.get('src')]
         if img_list:
@@ -355,44 +415,50 @@ elif st.session_state.step == 2:
     # Action Button
     c_btn1, c_btn2, c_btn3 = st.columns([1, 2, 1])
     with c_btn2:
-        if st.button("🚀 Generate AI Campaigns & Mockups", use_container_width=True):
+        if st.button("Generate Campaign Concepts", use_container_width=True):
             st.session_state.step = 3
             st.rerun()
 
 # --- PAGE 3: RESULTS ---
 elif st.session_state.step == 3:
     
-    # LOGIC IN SPINNER (Full Screen Dark Theme)
+    # LOGIC IN LOADER
     if not st.session_state.campaigns:
-        with st.spinner("🧠 Neural Engines Active... Synthesizing Strategy... Rendering 8K Mockups..."):
-            # 1. Strategy
-            campaign_data = generate_campaign_strategy(st.session_state.brand_data)
-            
-            # 2. Images
-            final_campaigns = []
-            for camp in campaign_data:
-                prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
-                if prompt:
-                    img = generate_image_from_prompt(prompt)
-                    camp['generated_image'] = img
-                final_campaigns.append(camp)
-            
-            st.session_state.campaigns = final_campaigns
-            st.rerun()
+        # Display Custom Loader
+        placeholder = st.empty()
+        with placeholder:
+            full_screen_loader("Synthesizing Strategy & Rendering Mockups...")
+        
+        # 1. Strategy
+        campaign_data = generate_campaign_strategy(st.session_state.brand_data)
+        
+        # 2. Images
+        final_campaigns = []
+        for camp in campaign_data:
+            prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
+            if prompt:
+                img = generate_image_from_prompt(prompt)
+                camp['generated_image'] = img
+            final_campaigns.append(camp)
+        
+        st.session_state.campaigns = final_campaigns
+        
+        # Remove loader
+        placeholder.empty()
+        st.rerun()
 
     # DISPLAY
-    st.markdown("<h1>🚀 Strategic Concepts</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>Strategic Concepts</h1>", unsafe_allow_html=True)
     st.divider()
 
     if not st.session_state.campaigns:
-        st.error("Generation failed. Please check API limits or try again.")
+        st.error("Generation failed. Please check API status.")
         if st.button("Retry"):
             st.session_state.campaigns = []
             st.session_state.step = 2
             st.rerun()
     
     for i, campaign in enumerate(st.session_state.campaigns):
-        # Container for each campaign
         with st.container():
             st.markdown(f"### {i+1}. {campaign.get('campaign_name')}")
             
@@ -401,7 +467,7 @@ elif st.session_state.step == 3:
             with c_txt:
                 st.markdown(f"<div style='font-size:1.1rem; line-height:1.6; color:#ccc; margin-bottom:20px;'>{campaign.get('campaign_description')}</div>", unsafe_allow_html=True)
                 
-                with st.expander("🛠️ View GenAI Prompt Details"):
+                with st.expander("View Prompt Details"):
                     st.code(campaign.get('image_prompt_structure', {}).get('final_constructed_prompt'), language="text")
             
             with c_img:
@@ -409,10 +475,10 @@ elif st.session_state.step == 3:
                 if img:
                     st.image(img, caption="Generated Mockup", use_column_width=True)
                 else:
-                    st.info("Mockup generation unavailable for this concept.")
+                    st.info("Image generation unavailable.")
             
             st.markdown("---")
 
-    if st.button("Start New Analysis"):
+    if st.button("Start New Project"):
         st.session_state.clear()
         st.rerun()
