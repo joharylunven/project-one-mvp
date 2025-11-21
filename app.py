@@ -91,56 +91,45 @@ def get_brand_dna_scrapingbee(url):
         st.error(f"Erreur Connection: {e}")
         return None
 
-# --- 2. FONCTION MARKETING (ROBUSTE & CORRIGÉE) ---
+# --- 2. FONCTION MARKETING (VERSION MISE À JOUR GEMINI 2.5) ---
 def generate_marketing_gemini(dna_json):
-    """
-    Version blindée : Essaie plusieurs modèles et nettoie le JSON manuellement.
-    """
     prompt = f"""
-    Tu es un expert marketing. Analyse cet ADN (JSON) : {json.dumps(dna_json)}
-    
-    Tâche : Crée 3 idées de posts Instagram.
-    
-    RÈGLE STRICTE : Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ni après. Pas de markdown ```json ... ```.
-    
-    Structure attendue :
-    {{
-        "campaigns": [
-            {{
-                "title": "Titre",
-                "caption": "Légende...",
-                "image_prompt": "Description visuelle en ANGLAIS"
-            }}
-        ]
-    }}
+    Act as a marketing expert. Analyze this JSON: {json.dumps(dna_json)}
+    Create 3 Instagram campaigns.
+    Return ONLY valid JSON.
+    Structure: {{ "campaigns": [ {{ "title": "...", "caption": "...", "image_prompt": "..." }} ] }}
     """
 
-    # Liste des modèles à tester par ordre de préférence
-    models_to_try = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+    # MISE À JOUR ICI : On utilise le modèle présent dans ta liste
+    # 'gemini-2.5-flash' est stable et rapide
+    model_name = 'gemini-2.5-flash'
     
-    for model_name in models_to_try:
+    try:
+        if not GOOGLE_API_KEY:
+            st.error("La clé API Google est vide.")
+            return []
+
+        # On instancie le modèle spécifique
+        model = genai.GenerativeModel(model_name)
+        
+        # Appel API
+        response = model.generate_content(prompt)
+        
+        # Nettoyage de la réponse (au cas où il y a du markdown)
+        text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)['campaigns']
+
+    except Exception as e:
+        st.error(f"ERREUR : {e}")
+        # Fallback : Si le 2.5 échoue, on tente le 'latest' générique
         try:
-            model = genai.GenerativeModel(model_name)
-            # On demande du texte simple pour éviter les erreurs de config JSON des vieilles versions
+            st.warning("Tentative avec le modèle générique...")
+            model = genai.GenerativeModel('gemini-flash-latest')
             response = model.generate_content(prompt)
-            
-            # Nettoyage manuel du JSON (enlève les balises markdown si présentes)
-            clean_text = response.text.strip()
-            if clean_text.startswith("```json"):
-                clean_text = clean_text.replace("```json", "").replace("```", "")
-            elif clean_text.startswith("```"):
-                clean_text = clean_text.replace("```", "")
-            
-            return json.loads(clean_text)['campaigns']
-            
-        except Exception as e:
-            # Si ce modèle échoue, on passe au suivant silencieusement
-            print(f"Echec avec {model_name}: {e}")
-            continue
-            
-    # Si tout échoue
-    st.error("Tous les modèles Gemini ont échoué. Vérifiez votre clé API.")
-    return []
+            text = response.text.replace("```json", "").replace("```", "").strip()
+            return json.loads(text)['campaigns']
+        except:
+            return []
 
 # --- 3. FONCTION IMAGE (Astuce MVP Gratuit) ---
 def get_mvp_image_url(prompt):
