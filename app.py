@@ -176,20 +176,26 @@ st.markdown("""
     }
 
     /* --- BUTTONS --- */
-    .stButton button {
-        background-color: #3b82f6;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        letter-spacing: 0.02em;
-        transition: background 0.2s;
-        text-transform: uppercase;
-        font-size: 0.85rem;
+    .stButton button, .stLinkButton a {
+        background-color: #3b82f6 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        padding: 0.75rem 1.5rem !important;
+        letter-spacing: 0.02em !important;
+        transition: background 0.2s !important;
+        text-transform: uppercase !important;
+        font-size: 0.85rem !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
-    .stButton button:hover {
-        background-color: #2563eb;
+    .stButton button:hover, .stLinkButton a:hover {
+        background-color: #2563eb !important;
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important;
+        color: white !important;
     }
     
     /* --- DIVIDERS & SPACING --- */
@@ -587,8 +593,14 @@ elif st.session_state.step == 3:
         </div>
     """, unsafe_allow_html=True)
 
+    # Centering the button using columns
     b1, b2, b3 = st.columns([1.5, 1, 1.5])
     with b2:
-        st.button("Schedule a Consultation", use_container_width=True)
+        # Utilisation de st.link_button au lieu de st.button pour la redirection
+        st.link_button(
+            "Schedule a Consultation", 
+            "https://calendly.com/contact-respectfully/30min", # <--- METS TON LIEN CALENDLY ICI
+            use_container_width=True
+        )
     
     st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
