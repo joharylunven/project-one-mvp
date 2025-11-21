@@ -15,22 +15,22 @@ GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "")
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- 2. STYLE SYSTEM (SILENT LUXURY) ---
+# --- 2. STYLE SYSTEM (ROUNDED PREMIUM) ---
 def inject_custom_css():
     st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Playfair+Display:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;600&display=swap');
 
-    /* VARIABLES */
     :root {
         --bg-color: #050505;
         --card-bg: #111;
         --text-primary: #FFFFFF;
-        --text-secondary: #888;
-        --border: #222;
+        --text-secondary: #999;
+        --accent-blue: #2E5CFF; /* Beau bleu premium */
+        --border-radius: 24px;
+        --btn-radius: 50px;
     }
 
-    /* GLOBAL RESET */
     .stApp {
         background-color: var(--bg-color);
         font-family: 'Inter', sans-serif;
@@ -38,160 +38,139 @@ def inject_custom_css():
     }
     
     /* TYPOGRAPHY */
-    h1, h2, h3 {
-        font-family: 'Playfair Display', serif !important;
-        font-weight: 400 !important;
-        letter-spacing: -0.02em;
-    }
+    h1, h2, h3 { font-family: 'Playfair Display', serif !important; font-weight: 400 !important; letter-spacing: -0.02em; }
+    h1 { font-size: 3.8rem !important; }
     
-    h1 { font-size: 4rem !important; margin-bottom: 0.5rem !important; }
-    p { font-weight: 300; letter-spacing: 0.02em; color: #ccc; }
-
     /* INPUTS */
     .stTextInput > div > div > input {
-        background-color: transparent;
+        background-color: #0A0A0A;
         color: white;
-        border: none;
-        border-bottom: 1px solid #444;
-        border-radius: 0;
-        padding: 15px 0;
-        font-size: 1.2rem;
-        font-family: 'Inter', sans-serif;
+        border: 1px solid #333;
+        border-radius: var(--border-radius);
+        padding: 15px 25px;
+        font-size: 1rem;
         text-align: center;
+        transition: border-color 0.3s ease;
     }
+    /* LE BLEU PREMIUM AU FOCUS */
     .stTextInput > div > div > input:focus {
-        border-bottom-color: #fff;
-        box-shadow: none;
+        border-color: var(--accent-blue) !important;
+        box-shadow: 0 0 0 1px var(--accent-blue) !important;
     }
 
-    /* BUTTONS */
+    /* BUTTONS (Centrés, Arrondis, Texte Sombre) */
     .stButton > button {
         background-color: white;
-        color: black !important;
-        border: 1px solid white;
-        border-radius: 0px;
+        color: #000 !important; /* Texte sombre */
+        border: none;
+        border-radius: var(--btn-radius);
         padding: 16px 40px;
         text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 2px;
-        font-weight: 600;
-        transition: all 0.4s ease;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        font-weight: 700;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         width: 100%;
+        box-shadow: 0 5px 20px rgba(255,255,255,0.1);
     }
     .stButton > button:hover {
-        background-color: black;
-        color: white !important;
-        border: 1px solid white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(255,255,255,0.2);
+        color: #000 !important;
     }
 
     /* CARDS */
-    .minimal-card {
-        border: 1px solid var(--border);
-        padding: 30px;
-        background: #0a0a0a;
-        transition: border-color 0.3s;
-    }
-    .minimal-card:hover {
-        border-color: #444;
+    .rounded-card {
+        border: 1px solid #222;
+        border-radius: var(--border-radius);
+        padding: 35px;
+        background: #0e0e0e;
+        margin-bottom: 20px;
     }
 
-    /* COLOR CIRCLES */
-    .color-dot {
-        height: 40px;
-        width: 40px;
-        border-radius: 50%;
-        display: inline-block;
-        border: 1px solid #333;
-        margin-right: 15px;
-    }
-
-    /* FULL SCREEN LOADER */
-    .fullscreen-loader {
-        position: fixed;
-        top: 0; left: 0; width: 100vw; height: 100vh;
-        background: #000;
-        z-index: 99999;
+    /* PILLS (Tags encadrés) */
+    .pill-container {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
     }
-    .loader-text {
-        font-family: 'Playfair Display', serif;
-        font-size: 2rem;
-        color: white;
+    .pill {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid #333;
+        padding: 8px 18px;
+        border-radius: 30px;
+        font-size: 0.85rem;
+        color: #ddd;
+        white-space: nowrap;
+    }
+
+    /* LOADER FULLSCREEN */
+    .fullscreen-loader {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: #000; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .loader-small {
+        font-family: 'Inter', sans-serif; font-size: 0.7rem; letter-spacing: 3px; 
+        text-transform: uppercase; color: #666; margin-bottom: 15px;
+    }
+    .loader-large {
+        font-family: 'Playfair Display', serif; font-size: 2.5rem; color: white;
         animation: pulse 2s infinite;
     }
-    @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+    @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+    /* EXPANDER STYLING */
+    .streamlit-expanderHeader {
+        background-color: transparent !important;
+        color: #666 !important;
+        font-size: 0.9rem !important;
+    }
     
-    /* HIDE DEFAULT STREAMLIT ELEMENTS */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* HIDE ELEMENTS */
+    #MainMenu, footer, header {visibility: hidden;}
     </style>
     """, unsafe_allow_html=True)
 
 inject_custom_css()
 
-# --- 3. SCRAPING (ScrapingBee AI) ---
+# --- 3. SCRAPING ---
 def get_brand_dna(url):
-    """Extraction fidèle de l'ADN via ScrapingBee."""
     rules = {
         "projectName": "Brand Name",
-        "tagline": "Slogan or Tagline",
-        "industry": "Industry Sector",
-        "concept": "Brand Concept Summary (2 sentences)",
-        "colors": {
-            "description": "List of main HEX colors found in CSS",
-            "type": "list",
-            "output": {"hex_code": "#HexCode"}
-        },
-        "aesthetic": {
-            "description": "5 aesthetic keywords (e.g. Minimalist, Bold)",
-            "type": "list",
-            "output": {"keyword": "Word"}
-        },
-         "values": {
-            "description": "Brand values",
-            "type": "list",
-            "output": {"value": "Value"}
-        }
+        "tagline": "Slogan",
+        "industry": "Industry",
+        "concept": "Detailed Concept Summary (2-3 sentences)",
+        "colors": {"description": "Hex colors", "type": "list", "output": {"hex_code": "#Hex"}},
+        "aesthetic": {"description": "Aesthetic keywords", "type": "list", "output": {"keyword": "Word"}},
+        "values": {"description": "Brand values", "type": "list", "output": {"value": "Value"}},
+        "images": {"description": "Images", "type": "list", "output": {"src": "URL"}}
     }
-    
     params = {
-        'api_key': SCRAPINGBEE_API_KEY,
-        'url': url,
-        'render_js': 'true',
-        'ai_extract_rules': json.dumps(rules),
-        'premium_proxy': 'true'
+        'api_key': SCRAPINGBEE_API_KEY, 'url': url, 'render_js': 'true',
+        'ai_extract_rules': json.dumps(rules), 'premium_proxy': 'true'
     }
-    
     try:
         response = requests.get('https://app.scrapingbee.com/api/v1/', params=params, timeout=45)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except:
-        return None
+        return response.json() if response.status_code == 200 else None
+    except: return None
 
 # --- 4. STRATÉGIE (Gemini 2.5) ---
 def generate_strategy(dna):
     prompt = f"""
-    Act as a Luxury Brand Strategist.
+    Role: Luxury Brand Strategist.
+    Brand DNA: {json.dumps(dna)}
     
-    BRAND DNA:
-    {json.dumps(dna)}
-    
-    Create 3 distinct social media campaign concepts.
-    
-    OUTPUT JSON FORMAT:
+    Task: Develop 3 detailed social media campaigns.
+    Output JSON:
     {{
         "campaigns": [
             {{
                 "id": 1,
                 "title": "Campaign Title",
-                "strategy": "Why this fits the brand DNA (1 sentence).",
-                "visual_prompt": "Detailed photography instructions: Subject, Lighting, Camera Angle, Texture, Vibe. MUST be high-end commercial photography description."
+                "strategy": "Detailed strategy explaining the angle, target audience, and why it fits the brand (approx 40 words).",
+                "visual_prompt": "Extremely detailed commercial photography prompt: Subject, Lighting (e.g. softbox, golden hour), Camera (e.g. 85mm, f/1.8), Texture, Color Grading, Composition. Must ensure premium result."
             }}
         ]
     }}
@@ -200,41 +179,27 @@ def generate_strategy(dna):
     try:
         res = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
         return json.loads(res.text)['campaigns']
-    except:
-        return []
+    except: return []
 
-# --- 5. GENERATION IMAGE (CORRECTION 404) ---
+# --- 5. IMAGE (IMAGEN 4.0 - FIX 404) ---
 def generate_image_imagen(prompt_text):
-    """
-    Utilise le modèle EXACT de ta liste pour éviter l'erreur 404.
-    """
-    # MISE A JOUR DU MODELE ICI : imagen-4.0-generate-preview-06-06
+    # Utilisation du endpoint PREVIEW 06-06 (Le seul qui marche chez toi)
     url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key={GOOGLE_API_KEY}"
     
     headers = {"Content-Type": "application/json"}
     payload = {
-        "instances": [{"prompt": prompt_text + ", photorealistic, 8k, highly detailed, instagram feed ratio"}],
-        "parameters": {
-            "sampleCount": 1,
-            "aspectRatio": "4:5"
-        }
+        "instances": [{"prompt": prompt_text + ", 8k, photorealistic, highly detailed, award winning photography"}],
+        "parameters": {"sampleCount": 1, "aspectRatio": "4:5"}
     }
-    
     try:
         response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
             predictions = response.json().get('predictions', [])
             if predictions:
-                # Le format 4.0 preview retourne souvent bytesBase64Encoded directement
                 b64 = predictions[0].get('bytesBase64Encoded', predictions[0])
                 return Image.open(BytesIO(base64.b64decode(b64)))
-        else:
-            # Debug silencieux console si besoin
-            print(f"Error: {response.text}")
-            return None
-    except Exception as e:
-        print(e)
         return None
+    except: return None
 
 # --- 6. UI FLOW ---
 
@@ -245,129 +210,148 @@ if 'images' not in st.session_state: st.session_state.images = {}
 
 # PAGE 1 : LANDING
 if st.session_state.step == 1:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         st.markdown("<h1 style='text-align:center;'>PROJECT ONE</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; margin-bottom:50px;'>ENTER YOUR WEBSITE. WE GENERATE YOUR BRAND IDENTITY.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; margin-bottom:40px; color:#888;'>ENTER YOUR WEBSITE. WE GENERATE YOUR BRAND IDENTITY.</p>", unsafe_allow_html=True)
         
+        # Input centré
         url = st.text_input("URL", placeholder="www.example.com", label_visibility="collapsed")
         st.markdown("<br>", unsafe_allow_html=True)
         
-        if st.button("GENERATE IDENTITY"):
-            if url:
-                st.session_state.url = url if url.startswith('http') else 'https://' + url
-                st.session_state.step = 1.5
-                st.rerun()
+        # Bouton Centré
+        b1, b2, b3 = st.columns([1, 1, 1]) # Astuce pour centrer le bouton
+        with b2:
+            if st.button("GENERATE IDENTITY"):
+                if url:
+                    st.session_state.url = url if url.startswith('http') else 'https://' + url
+                    st.session_state.step = 1.5
+                    st.rerun()
 
-# LOADING SCREEN (FULL SCREEN)
+# LOADING SCREEN 1
 elif st.session_state.step == 1.5:
     st.markdown("""
     <div class="fullscreen-loader">
-        <div class="loader-text">ANALYZING BRAND DNA</div>
-        <p style="color:#666; margin-top:20px;">Please wait while we extract visual codes...</p>
+        <div class="loader-small">PROJECT ONE</div>
+        <div class="loader-large">ANALYZING DNA</div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Le code s'exécute pendant que l'overlay est affiché
     dna = get_brand_dna(st.session_state.url)
     if dna:
         st.session_state.dna = dna
         st.session_state.step = 2
         st.rerun()
     else:
-        st.error("Analysis Failed. Check URL.")
+        st.error("Failed.")
         if st.button("Back"): st.session_state.step = 1; st.rerun()
 
-# PAGE 2 : DNA RESULTS
+# PAGE 2 : DASHBOARD
 elif st.session_state.step == 2:
     dna = st.session_state.dna
     
-    st.markdown(f"<p style='text-align:center; letter-spacing:3px; font-size:0.8rem;'>GENERATED IDENTITY</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1 style='text-align:center;'>{dna.get('projectName', 'Unknown').upper()}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p style='text-align:center; margin-bottom:60px; color:#888;'>{dna.get('tagline')}</p>", unsafe_allow_html=True)
+    # Header
+    st.markdown(f"<p style='text-align:center; letter-spacing:2px; font-size:0.8rem; color:#666;'>IDENTITY EXTRACTED</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='text-align:center; margin-top:0;'>{dna.get('projectName', 'BRAND').upper()}</h1>", unsafe_allow_html=True)
+    
+    # Concept plus gros et lisible
+    st.markdown(f"""
+    <div style="text-align:center; max-width:700px; margin: 0 auto 50px auto;">
+        <p style="font-size:1.3rem; line-height:1.5; color:#EEE; font-weight:300;">
+            {dna.get('concept')}
+        </p>
+        <p style="color:#888; margin-top:10px; font-style:italic;">"{dna.get('tagline')}"</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     
     with c1:
-        st.markdown("<div class='minimal-card'>", unsafe_allow_html=True)
-        st.markdown("<h3>Visual Codes</h3><br>", unsafe_allow_html=True)
+        st.markdown("<div class='rounded-card'>", unsafe_allow_html=True)
+        st.markdown("<h3>Visual Codes</h3>", unsafe_allow_html=True)
         
-        # Couleurs (Affichage fidèle)
         st.write("PALETTE")
         cols = st.columns(5)
-        for idx, color in enumerate(dna.get('colors', [])[:5]):
-            hex_code = color.get('hex_code')
-            # Carré de couleur simple et pur
-            st.markdown(f"<div style='background-color:{hex_code}; height:60px; width:100%; margin-bottom:10px;'></div>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-size:0.7rem; color:#666;'>{hex_code}</p>", unsafe_allow_html=True)
+        for color in dna.get('colors', [])[:5]:
+            st.markdown(f"<div style='background-color:{color.get('hex_code')}; height:50px; border-radius:10px; margin-bottom:5px;'></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:0.7rem; text-align:center; color:#666;'>{color.get('hex_code')}</div>", unsafe_allow_html=True)
             
-        st.write("AESTHETIC")
-        tags = [a.get('keyword') for a in dna.get('aesthetic', [])]
-        st.markdown(f"<p style='color:white;'>{' • '.join(tags).upper()}</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("<br>AESTHETIC", unsafe_allow_html=True)
+        st.markdown("<div class='pill-container'>", unsafe_allow_html=True)
+        for a in dna.get('aesthetic', []):
+            st.markdown(f"<div class='pill'>{a.get('keyword')}</div>", unsafe_allow_html=True)
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
     with c2:
-        st.markdown("<div class='minimal-card' style='height:100%;'>", unsafe_allow_html=True)
-        st.markdown("<h3>Core Concept</h3><br>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size:1.1rem; line-height:1.6; color:#ddd;'>{dna.get('concept')}</p>", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.write("VALUES")
-        vals = [v.get('value') for v in dna.get('values', [])]
-        st.markdown(f"<p style='color:white;'>{' • '.join(vals).upper()}</p>", unsafe_allow_html=True)
+        st.markdown("<div class='rounded-card' style='height:100%'>", unsafe_allow_html=True)
+        st.markdown("<h3>Core Values</h3>", unsafe_allow_html=True)
+        st.markdown("<div class='pill-container'>", unsafe_allow_html=True)
+        for v in dna.get('values', []):
+            st.markdown(f"<div class='pill'>{v.get('value')}</div>", unsafe_allow_html=True)
+        st.markdown("</div><br>", unsafe_allow_html=True)
+        
+        # Affichage conditionnel des images
+        scraped_imgs = dna.get('images', [])
+        if scraped_imgs and len(scraped_imgs) > 0:
+             st.write("INSPIRATION")
+             ic1, ic2 = st.columns(2)
+             if len(scraped_imgs) > 0: ic1.image(scraped_imgs[0]['src'], use_container_width=True)
+             if len(scraped_imgs) > 1: ic2.image(scraped_imgs[1]['src'], use_container_width=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    if st.button("GENERATE CAMPAIGNS & VISUALS"):
-        st.session_state.step = 3
-        st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+    b1, b2, b3 = st.columns([1, 1, 1])
+    with b2:
+        if st.button("GENERATE CAMPAIGNS & VISUALS"):
+            st.session_state.step = 3
+            st.rerun()
 
-# PAGE 3 : CAMPAIGNS (LOADING FULL SCREEN + DISPLAY)
+# PAGE 3 : CAMPAIGNS
 elif st.session_state.step == 3:
     
-    # 1. Logic Generation (Full Screen Loader)
+    # Loader
     if not st.session_state.campaigns:
         st.markdown("""
         <div class="fullscreen-loader">
-            <div class="loader-text">DESIGNING CAMPAIGNS</div>
-            <p style="color:#666; margin-top:20px;">AI is rendering high-fidelity visuals...</p>
+            <div class="loader-small">PROJECT ONE</div>
+            <div class="loader-large">CRAFTING VISUALS</div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Generate Text Strategy
         st.session_state.campaigns = generate_strategy(st.session_state.dna)
-        
-        # Generate Images (Loop)
         for camp in st.session_state.campaigns:
             img = generate_image_imagen(camp['visual_prompt'])
-            if img:
-                st.session_state.images[camp['id']] = img
-        
-        # Refresh to remove loader
+            if img: st.session_state.images[camp['id']] = img
         st.rerun()
 
-    # 2. Display Results
-    st.markdown("<h2 style='text-align:center; margin-bottom:50px;'>CAMPAIGN PROPOSALS</h2>", unsafe_allow_html=True)
+    # Display
+    st.markdown("<h2 style='text-align:center; margin-bottom:50px;'>STRATEGIC PROPOSALS</h2>", unsafe_allow_html=True)
     
     for camp in st.session_state.campaigns:
         cid = camp['id']
-        st.markdown(f"<div class='minimal-card' style='margin-bottom:40px;'>", unsafe_allow_html=True)
-        
+        st.markdown(f"<div class='rounded-card'>", unsafe_allow_html=True)
         cols = st.columns([1, 1])
+        
         with cols[0]:
             st.markdown(f"<span style='font-size:3rem; font-family:Playfair Display; color:#333;'>0{cid}</span>", unsafe_allow_html=True)
             st.markdown(f"<h3>{camp['title']}</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-size:1.1rem; line-height:1.6; margin-top:20px;'>{camp['strategy']}</p>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-size:0.8rem; color:#666; margin-top:20px; border-top:1px solid #222; padding-top:10px;'>PROMPT DATA: {camp['visual_prompt'][:100]}...</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size:1.1rem; line-height:1.6; margin-top:20px; color:#ddd;'>{camp['strategy']}</p>", unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander("VIEW PROMPT DATA"):
+                st.code(camp['visual_prompt'], language="text")
 
         with cols[1]:
             if cid in st.session_state.images:
                 st.image(st.session_state.images[cid], use_container_width=True)
             else:
-                st.warning("Visual render failed.")
+                st.warning("Visual render failed. The AI model might be busy.")
         
         st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("START OVER"):
-        st.session_state.clear()
-        st.rerun()
+    b1, b2, b3 = st.columns([1, 1, 1])
+    with b2:
+        if st.button("START OVER"):
+            st.session_state.clear()
+            st.rerun()
