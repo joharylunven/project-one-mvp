@@ -44,7 +44,6 @@ st.markdown("""
     }
 
     /* --- INPUT FIELD: FORCE BLUE BORDER --- */
-    /* Override Streamlit default red/gray focus borders */
     div[data-baseweb="input"] {
         border: 1px solid #3b82f6 !important;
         background-color: #161b22 !important;
@@ -55,7 +54,6 @@ st.markdown("""
         color: white !important;
     }
     
-    /* Remove default red border on focus/error if present */
     div[data-baseweb="base-input"] {
         border-color: #3b82f6 !important;
     }
@@ -156,11 +154,11 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
-    /* --- CTA SECTION (CLEAN FLAT DARK) --- */
+    /* --- CTA SECTION --- */
     .cta-container {
         text-align: center;
         padding: 60px 20px;
-        background-color: #111318; /* Solid dark color, no gradient */
+        background-color: #111318;
         border: 1px solid #1f2937;
         border-radius: 8px;
         margin-top: 60px;
@@ -205,6 +203,18 @@ st.markdown("""
         border: none !important;
         box-shadow: none !important;
     }
+    
+    /* --- HEADER LOGO STYLE --- */
+    .header-logo-img {
+        width: 80px; 
+        height: 80px; 
+        object-fit: contain; 
+        border-radius: 12px; 
+        border: 1px solid rgba(255,255,255,0.1);
+        background-color: #161b22;
+        padding: 5px;
+        float: right;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -217,6 +227,8 @@ def get_brand_data(url):
     extract_rules = {
         "projectName": "the company or brand name",
         "tagline": "the website's main slogan or tagline",
+        # AJOUT DU LOGO ICI
+        "logo": "the absolute url of the website's favicon or main logo",
         "industry": "the business's industry or sector (e.g., tech, fashion)",
         "concept": "a short 50-word summary of what the business does",
         "colors": {
@@ -277,6 +289,8 @@ def generate_campaign_strategy(brand_data):
 
         TASK: Create 3 high-end campaign concepts. 
         For each, write a 'final_constructed_prompt' for image generation.
+        IMPORTANT: The image prompt must describe a CINEMATIC LANDSCAPE SHOT (16:9 aspect ratio). 
+        Do NOT describe a phone screen. Describe a lifestyle or artistic commercial shot.
 
         OUTPUT JSON:
         [
@@ -284,7 +298,7 @@ def generate_campaign_strategy(brand_data):
             "campaign_name": "Name",
             "campaign_description": "Strategic summary (30-40 words).",
             "image_prompt_structure": {{
-                 "final_constructed_prompt": "Subject: Photorealistic macro shot of a premium smartphone displaying the Instagram Profile for [Brand]. UI: [Brand Colors] accents, [Font Names]. Content: [Imagery description]. Lighting: Cinematic, moody. Quality: 8k, Octane Render." 
+                 "final_constructed_prompt": "Subject: Wide cinematic shot of [Scene Description] related to [Brand]..." 
             }}
           }}
         ]
@@ -299,7 +313,6 @@ def generate_social_prompts(brand_data):
     try:
         model = genai.GenerativeModel('models/gemini-2.0-flash')
         
-        # --- PROMPT MODIFIE POUR UI ONLY / 9:16 / NO PHONE ---
         prompt = f"""
         You are a Global Creative Director. 
         Brand Data: {json.dumps(brand_data)}
@@ -330,12 +343,17 @@ def generate_social_prompts(brand_data):
     except:
         return {"instagram_final_prompt": "", "tiktok_final_prompt": ""}
 
-def generate_image_from_prompt(prompt_text):
-    """Nano Banana Pro Image Generation."""
+def generate_image_from_prompt(prompt_text, aspect_ratio="16:9"):
+    """Nano Banana Pro Image Generation with Dynamic Ratio."""
     try:
         model = genai.GenerativeModel('models/nano-banana-pro-preview')
-        # Force Aspect Ratio in prompt as model doesn't always support parameter
-        refined_prompt = prompt_text + " --aspect_ratio 9:16" 
+        
+        # Ajout dynamique du ratio dans le prompt textuel
+        if aspect_ratio == "16:9":
+            refined_prompt = prompt_text + " --aspect_ratio 16:9" # Force Landscape
+        else:
+            refined_prompt = prompt_text + " --aspect_ratio 9:16" # Force Portrait for Mockups
+
         response = model.generate_content(refined_prompt)
         if response.parts:
             return response.parts[0].inline_data.data
@@ -364,7 +382,7 @@ if 'social_images' not in st.session_state: st.session_state.social_images = {}
 
 # --- PAGE 1: URL INPUT ---
 if st.session_state.step == 1:
-    # Adjusted spacer for visual vertical centering (25vh usually hits the sweet spot)
+    # Adjusted spacer for visual vertical centering
     st.markdown("<div style='height: 25vh;'></div>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; font-size: 3.5rem; font-weight: 700;'>Project One</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #6b7280; letter-spacing: 1px; margin-top: -10px;'>BESPOKE BRAND INTELLIGENCE</p>", unsafe_allow_html=True)
@@ -390,10 +408,19 @@ if st.session_state.step == 1:
 elif st.session_state.step == 2:
     data = st.session_state.brand_data
     
-    # Header
-    st.markdown(f"<h1 style='font-size: 2.5rem;'>{data.get('projectName', 'Brand Identity')}</h1>", unsafe_allow_html=True)
-    if data.get('tagline'):
-        st.markdown(f"<p style='font-size: 1.1rem; color: #3b82f6; margin-top: -15px;'>{data.get('tagline')}</p>", unsafe_allow_html=True)
+    # Header with Logo
+    h_col1, h_col2 = st.columns([4, 1], vertical_alignment="center")
+    
+    with h_col1:
+        st.markdown(f"<h1 style='font-size: 2.5rem; margin-bottom:0;'>{data.get('projectName', 'Brand Identity')}</h1>", unsafe_allow_html=True)
+        if data.get('tagline'):
+            st.markdown(f"<p style='font-size: 1.1rem; color: #3b82f6; margin-top: 5px;'>{data.get('tagline')}</p>", unsafe_allow_html=True)
+            
+    with h_col2:
+        # Display grabbed logo if available
+        if data.get('logo'):
+            st.markdown(f"<img src='{data.get('logo')}' class='header-logo-img'>", unsafe_allow_html=True)
+
     st.divider()
 
     # Main Layout
@@ -546,21 +573,20 @@ elif st.session_state.step == 3:
         else:
             st.info("TikTok mockup generation failed.")
 
-    # --- FINAL CTA (CLEAN FLAT DESIGN) ---
+    # --- FINAL CTA ---
+    st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
+    
     st.markdown("""
-        <div class="cta-container">
-            <div class="cta-heading">Ready to amplify your digital footprint?</div>
-            <div class="cta-sub">Transform these concepts into your reality. Let's define your future.</div>
+        <div style='text-align: center; color: #ffffff; font-size: 1.2rem; font-weight: 500; margin-bottom: 15px;'>
+            Ready to elevate your digital footprint?
+        </div>
+        <div style='text-align: center; color: #9ca3af; font-size: 0.95rem; margin-bottom: 25px;'>
+            Let's turn these concepts into your reality.
         </div>
     """, unsafe_allow_html=True)
-    
-    # Centering the button using columns
+
     b1, b2, b3 = st.columns([1.5, 1, 1.5])
     with b2:
         st.button("Schedule a Consultation", use_container_width=True)
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
     
-    if st.button("Initialize New Analysis"):
-        st.session_state.clear()
-        st.rerun()
+    st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
