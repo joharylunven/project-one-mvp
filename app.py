@@ -198,10 +198,10 @@ def get_brand_data(url):
         return None
 
 def generate_campaign_strategy(brand_data):
-    """Generates campaigns using Gemini 1.5 Pro (More robust for creative tasks)."""
+    """Generates campaigns using Gemini 1.5 Flash (More reliable availability)."""
     try:
-        # Switched to 1.5-pro for better instruction following if flash fails
-        model = genai.GenerativeModel('gemini-1.5-pro')
+        # Switched to 1.5-flash to fix 404 Not Found on Pro
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
         Act as a Senior Creative Director for a luxury agency.
@@ -233,9 +233,8 @@ def generate_campaign_strategy(brand_data):
         return []
 
 def generate_image_from_prompt(prompt_text):
-    """Generates image using Imagen 3 (Latest available)."""
+    """Generates image using Imagen 3."""
     try:
-        # Using the latest stable Imagen model
         model = genai.GenerativeModel('imagen-3.0-generate-001')
         
         result = model.generate_images(
@@ -340,7 +339,6 @@ elif st.session_state.step == 2:
                 st.markdown(f"<div style='background:#161b22; padding:8px; border-radius:6px; margin-bottom:5px; border-left: 3px solid #3b82f6;'>{f.get('font_name')} <span style='opacity:0.5; font-size:0.8em'>({f.get('use')})</span></div>", unsafe_allow_html=True)
 
     # Row 2: Visuals (Conditional)
-    # "si visuals assets chargent pas les mets pas" -> Check if list exists
     if data.get('images') and len(data['images']) > 0:
         st.markdown("---")
         st.markdown("### 📸 Visual Assets")
@@ -375,7 +373,6 @@ elif st.session_state.step == 3:
             for camp in campaign_data:
                 prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
                 if prompt:
-                    # Using Imagen 3 (as "Imagen 4" is not public API yet)
                     img = generate_image_from_prompt(prompt)
                     camp['generated_image'] = img
                 final_campaigns.append(camp)
@@ -410,7 +407,7 @@ elif st.session_state.step == 3:
             with c_img:
                 img = campaign.get('generated_image')
                 if img:
-                    st.image(img, caption="Imagen 3 Generated Mockup", use_column_width=True)
+                    st.image(img, caption="Generated Mockup", use_column_width=True)
                 else:
                     st.info("Mockup generation unavailable for this concept.")
             
