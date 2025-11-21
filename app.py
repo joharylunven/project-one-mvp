@@ -5,171 +5,157 @@ import google.generativeai as genai
 import base64
 from PIL import Image
 from io import BytesIO
-import time
 
 # --- 1. CONFIGURATION ---
-st.set_page_config(
-    page_title="Project One",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="Project One", layout="wide", initial_sidebar_state="collapsed")
 
 SCRAPINGBEE_API_KEY = st.secrets.get("SCRAPINGBEE_API_KEY", "")
 GOOGLE_API_KEY = st.secrets.get("GOOGLE_API_KEY", "")
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-# --- 2. DESIGN SYSTEM "SILICON VALLEY" ---
+# --- 2. DESIGN SYSTEM (PURE CENTERED) ---
 def inject_custom_css():
     st.markdown("""
     <style>
-    /* IMPORT FONT INTER (Standard Tech) */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;600&display=swap');
 
     :root {
-        --bg-app: #0C0E14; /* Dark Blue/Black Deep */
-        --surface: #151923;
-        --surface-hover: #1E2330;
-        --primary: #3B82F6; /* Tech Blue */
-        --primary-hover: #2563EB;
-        --text-main: #F9FAFB;
-        --text-muted: #9CA3AF;
-        --border: #2D3342;
-        --radius: 8px;
-        --radius-lg: 12px;
+        --bg: #050505;
+        --card: #0F0F0F;
+        --text: #FFFFFF;
+        --accent: #3B82F6; /* Bleu Premium */
     }
 
-    /* RESET & BASE */
     .stApp {
-        background-color: var(--bg-app);
+        background-color: var(--bg);
+        color: var(--text);
         font-family: 'Inter', sans-serif;
-        color: var(--text-main);
-    }
-    
-    h1, h2, h3 {
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 700 !important;
-        letter-spacing: -0.025em;
-        color: var(--text-main) !important;
-    }
-    
-    p, div, span, label {
-        color: var(--text-muted);
-        font-weight: 400;
     }
 
-    /* INPUTS (Modern SaaS Style) */
-    .stTextInput > div > div > input {
-        background-color: var(--surface);
-        color: var(--text-main);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 12px 16px;
-        font-size: 1rem;
-        transition: all 0.2s ease;
-    }
-    .stTextInput > div > div > input:focus {
-        border-color: var(--primary) !important;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
-        background-color: var(--bg-app);
-    }
+    /* TYPOGRAPHIE */
+    h1 { font-family: 'Playfair Display', serif !important; font-size: 3.5rem !important; font-weight: 400 !important; text-align: center; margin-bottom: 1rem !important; }
+    h2 { font-family: 'Playfair Display', serif !important; font-size: 2rem !important; margin-bottom: 1.5rem !important; }
+    h3 { font-family: 'Inter', sans-serif !important; font-size: 1.2rem !important; font-weight: 600 !important; margin-bottom: 0.5rem !important; }
+    p { color: #AAA; line-height: 1.6; font-size: 1rem; }
 
-    /* BUTTONS (Primary Action) */
-    .stButton > button {
-        background-color: var(--primary);
-        color: white !important;
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: var(--radius);
-        padding: 10px 24px;
-        font-weight: 500;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        background-color: var(--primary-hover);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        border-color: rgba(255,255,255,0.2);
-    }
-    .stButton > button:active {
-        transform: translateY(1px);
-    }
-
-    /* CARDS & CONTAINERS */
-    .tech-card {
-        background-color: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 24px;
-        margin-bottom: 20px;
-        transition: border-color 0.2s ease;
-    }
-    .tech-card:hover {
-        border-color: #4B5563;
-    }
-
-    /* BADGES / PILLS */
-    .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 4px 12px;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background-color: rgba(59, 130, 246, 0.1);
-        color: #60A5FA;
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        margin-right: 8px;
-        margin-bottom: 8px;
-    }
-
-    /* COLORS DISPLAY */
-    .color-swatch {
-        width: 100%;
-        height: 40px;
-        border-radius: 6px;
-        border: 1px solid rgba(255,255,255,0.1);
-        margin-bottom: 8px;
-    }
-    .color-label {
-        font-family: 'Inter', monospace;
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        text-align: center;
-    }
-
-    /* FULLSCREEN LOADER */
-    .fullscreen-loader {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background-color: var(--bg-app);
-        z-index: 999999;
+    /* PAGE 1 : CENTRAGE ABSOLU */
+    .landing-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        backdrop-filter: blur(10px);
+        height: 70vh; /* Prend une bonne partie de la hauteur */
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
     }
-    .loader-spinner {
-        width: 40px; height: 40px;
-        border: 3px solid rgba(59, 130, 246, 0.3);
-        border-radius: 50%;
-        border-top-color: var(--primary);
-        animation: spin 1s ease-in-out infinite;
-        margin-bottom: 20px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* UTILS */
-    .text-center { text-align: center; }
-    .mb-4 { margin-bottom: 1.5rem; }
-    .text-sm { font-size: 0.875rem; }
-    
-    /* CLEANUP STREAMLIT UI */
+    /* INPUT STYLISÉ */
+    .stTextInput { width: 100% !important; }
+    .stTextInput > div > div > input {
+        background-color: #111;
+        border: 1px solid #333;
+        color: white;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        font-size: 1.1rem;
+        transition: border-color 0.3s;
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+    }
+
+    /* BOUTONS CENTRÉS ET LARGES */
+    .stButton {
+        display: flex;
+        justify-content: center;
+        width: 100%; 
+    }
+    .stButton > button {
+        background-color: white;
+        color: black !important;
+        font-weight: 600;
+        border-radius: 50px;
+        padding: 16px 48px;
+        border: none;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        width: 100%; /* Prend toute la largeur du conteneur parent */
+        max-width: 400px; /* Limite pour l'esthétique */
+        margin-top: 20px;
+        transition: transform 0.2s;
+    }
+    .stButton > button:hover {
+        background-color: #EAEAEA;
+        transform: scale(1.02);
+        color: black !important;
+    }
+
+    /* PREMIUM CARDS (Page 2 & 3) */
+    .premium-card {
+        background-color: var(--card);
+        border: 1px solid #222;
+        border-radius: 16px;
+        padding: 40px;
+        margin-bottom: 30px;
+    }
+
+    /* PALETTE DE COULEURS (FLEXBOX) */
+    .palette-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    .color-box {
+        flex: 1;
+        height: 60px;
+        min-width: 60px;
+        border-radius: 8px;
+        border: 1px solid #333;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.8);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    /* PILLS (VALUES & AESTHETICS) - TAILLE AUGMENTÉE */
+    .pill-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .pill {
+        background: rgba(255,255,255,0.08);
+        padding: 10px 24px; /* Plus grand padding */
+        border-radius: 100px;
+        font-size: 1.1rem; /* Police plus grande */
+        color: #FFF;
+        border: 1px solid #333;
+    }
+
+    /* FULLSCREEN LOADER */
+    .loader-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #050505; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .pulse-text {
+        font-family: 'Playfair Display', serif; font-size: 3rem; color: white;
+        animation: pulse 1.5s infinite ease-in-out;
+    }
+    @keyframes pulse { 0% { opacity: 0.4; } 50% { opacity: 1; } 100% { opacity: 0.4; } }
+
+    /* CLEANUP */
     #MainMenu, footer, header { visibility: hidden; }
-    .block-container { padding-top: 4rem; padding-bottom: 5rem; }
-    
+    .block-container { padding-top: 2rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -181,27 +167,41 @@ def get_brand_dna(url):
         "projectName": "Brand Name",
         "tagline": "Tagline",
         "industry": "Industry",
-        "concept": "Short Concept (Max 20 words)",
+        "concept": "Detailed Concept (Max 30 words)",
         "colors": {"description": "Hex colors", "type": "list", "output": {"hex_code": "#Hex"}},
         "aesthetic": {"description": "Aesthetic keywords", "type": "list", "output": {"keyword": "Word"}},
-        "values": {"description": "Brand values", "type": "list", "output": {"value": "Value"}}
+        "values": {"description": "Brand values", "type": "list", "output": {"value": "ValueName"}},
+        "images": {"description": "Images", "type": "list", "output": {"src": "URL"}}
     }
     params = {
         'api_key': SCRAPINGBEE_API_KEY, 'url': url, 'render_js': 'true',
-        'ai_extract_rules': json.dumps(rules), 'premium_proxy': 'true', 'wait': '2000'
+        'ai_extract_rules': json.dumps(rules), 'premium_proxy': 'true'
     }
     try:
         response = requests.get('https://app.scrapingbee.com/api/v1/', params=params, timeout=45)
         return response.json() if response.status_code == 200 else None
     except: return None
 
-# --- 4. LOGIC: STRATEGY ---
+# --- 4. LOGIC: STRATEGY (LONGUE) ---
 def generate_strategy(dna):
     prompt = f"""
-    Role: Tech/Startup Marketing Strategist.
+    Role: Luxury Brand Strategist.
     Brand DNA: {json.dumps(dna)}
-    Task: Create 3 modern social media campaign concepts.
-    Format: JSON list 'campaigns' with id, title, strategy (1 sentence), visual_prompt (detailed commercial photography description).
+    
+    Task: Create 3 social media campaigns.
+    CRITICAL: The 'strategy' field must be DETAILED (at least 60-80 words) explaining the 'why', the audience, and the emotional hook.
+    
+    Output JSON:
+    {{
+        "campaigns": [
+            {{
+                "id": 1,
+                "title": "Campaign Title",
+                "strategy": "Long detailed strategy text here...",
+                "visual_prompt": "High-end commercial photography description: Subject, Lighting, Composition, Texture."
+            }}
+        ]
+    }}
     """
     model = genai.GenerativeModel('gemini-2.5-flash')
     try:
@@ -209,23 +209,40 @@ def generate_strategy(dna):
         return json.loads(res.text)['campaigns']
     except: return []
 
-# --- 5. LOGIC: IMAGE (IMAGEN 4.0 FIX) ---
+# --- 5. LOGIC: IMAGE (ROBUSTESSE MAXIMALE) ---
 def generate_image_imagen(prompt_text):
+    # Endpoint Imagen 4.0 (Predict)
     url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-preview-06-06:predict?key={GOOGLE_API_KEY}"
+    
     headers = {"Content-Type": "application/json"}
+    # Payload simplifié pour éviter les erreurs de paramètres
     payload = {
-        "instances": [{"prompt": prompt_text + ", 8k, photorealistic, highly detailed, commercial photography"}],
-        "parameters": {"sampleCount": 1, "aspectRatio": "4:5"}
+        "instances": [{"prompt": prompt_text + ", 8k resolution, photorealistic, commercial photography, highly detailed"}],
+        "parameters": {"aspectRatio": "4:5", "sampleCount": 1}
     }
+    
     try:
         response = requests.post(url, headers=headers, json=payload)
+        
         if response.status_code == 200:
             predictions = response.json().get('predictions', [])
             if predictions:
-                b64 = predictions[0].get('bytesBase64Encoded', predictions[0]) if isinstance(predictions[0], dict) else predictions[0]
+                data = predictions[0]
+                # Gestion des formats variables de l'API
+                b64 = data.get('bytesBase64Encoded', data) if isinstance(data, dict) else data
                 return Image.open(BytesIO(base64.b64decode(b64)))
+            else:
+                # Si 200 OK mais pas d'image (filtre sécurité souvent)
+                print(f"API OK but no image: {response.json()}")
+                return None
+        else:
+            # Erreur HTTP (400, 403, 404, 500)
+            print(f"API Error {response.status_code}: {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"Exception: {e}")
         return None
-    except: return None
 
 # --- 6. UI FLOW ---
 if 'step' not in st.session_state: st.session_state.step = 1
@@ -233,30 +250,32 @@ if 'dna' not in st.session_state: st.session_state.dna = None
 if 'campaigns' not in st.session_state: st.session_state.campaigns = None
 if 'images' not in st.session_state: st.session_state.images = {}
 
-# --- PAGE 1: INPUT ---
+# --- PAGE 1: LANDING (CENTRÉ VIA HTML) ---
 if st.session_state.step == 1:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown("<h1 class='text-center'>Project One</h1>", unsafe_allow_html=True)
-        st.markdown("<p class='text-center mb-4'>Enter a website URL to generate a complete brand identity and content strategy.</p>", unsafe_allow_html=True)
-        
-        url = st.text_input("Website URL", placeholder="example.com", label_visibility="collapsed")
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        if st.button("Generate Identity"):
-            if url:
-                st.session_state.url = url if url.startswith('http') else 'https://' + url
-                st.session_state.step = 1.5
-                st.rerun()
+    
+    # Container Flexbox pour centrage parfait
+    st.markdown('<div class="landing-container">', unsafe_allow_html=True)
+    
+    st.markdown("<h1>PROJECT ONE</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; margin-bottom: 30px;'>ENTER YOUR WEBSITE. WE GENERATE YOUR BRAND IDENTITY.</p>", unsafe_allow_html=True)
+    
+    url = st.text_input("URL", placeholder="www.example.com", label_visibility="collapsed")
+    
+    # Le bouton est géré par le CSS .stButton pour être large et centré
+    if st.button("GENERATE IDENTITY"):
+        if url:
+            st.session_state.url = url if url.startswith('http') else 'https://' + url
+            st.session_state.step = 1.5
+            st.rerun()
+            
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- LOADING: FULL SCREEN ---
+# --- LOADER ---
 elif st.session_state.step == 1.5:
     st.markdown("""
-    <div class="fullscreen-loader">
-        <div class="loader-spinner"></div>
-        <h3 style="margin:0;">Analyzing Brand</h3>
-        <p>Extracting DNA & Visual Codes...</p>
+    <div class="loader-overlay">
+        <div class="pulse-text">PROJECT ONE</div>
+        <p style="color:#666; letter-spacing:3px; margin-top:20px;">ANALYZING IDENTITY</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -266,96 +285,95 @@ elif st.session_state.step == 1.5:
         st.session_state.step = 2
         st.rerun()
     else:
-        st.error("Could not analyze this URL.")
-        if st.button("Back"): st.session_state.step = 1; st.rerun()
+        st.error("Impossible d'analyser ce site. Vérifiez l'URL.")
+        if st.button("Retour"): st.session_state.step = 1; st.rerun()
 
-# --- PAGE 2: DASHBOARD ---
+# --- PAGE 2: DNA RESULTS ---
 elif st.session_state.step == 2:
     dna = st.session_state.dna
     
-    st.markdown(f"<p class='text-center text-sm'>IDENTITY EXTRACTED</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1 class='text-center'>{dna.get('projectName', 'Brand Name')}</h1>", unsafe_allow_html=True)
-    st.markdown(f"<p class='text-center' style='font-size: 1.1rem; color: #fff;'>{dna.get('tagline')}</p>", unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; font-size:0.9rem; letter-spacing:2px; color:#666;'>IDENTITY EXTRACTED</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1>{dna.get('projectName', 'BRAND').upper()}</h1>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; font-size:1.2rem; color:#FFF; max-width:800px; margin:0 auto 40px auto;'>{dna.get('concept')}</p>", unsafe_allow_html=True)
 
     c1, c2 = st.columns(2)
     
     with c1:
-        st.markdown("<div class='tech-card'>", unsafe_allow_html=True)
-        st.markdown("<h3>Visual Identity</h3><br>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
+        st.markdown("<h3>Visual Palette</h3><br>", unsafe_allow_html=True)
         
-        # Colors
-        st.markdown("<p class='text-sm'>PALETTE</p>", unsafe_allow_html=True)
-        cols = st.columns(5)
+        # Palette HTML Flexbox
+        st.markdown('<div class="palette-container">', unsafe_allow_html=True)
         for color in dna.get('colors', [])[:5]:
-            with cols[dna.get('colors').index(color) % 5]:
-                st.markdown(f"<div class='color-swatch' style='background-color:{color.get('hex_code')}'></div>", unsafe_allow_html=True)
-                st.markdown(f"<div class='color-label'>{color.get('hex_code')}</div>", unsafe_allow_html=True)
-
-        st.markdown("<br><p class='text-sm'>AESTHETIC</p>", unsafe_allow_html=True)
+            c = color.get('hex_code')
+            st.markdown(f'<div class="color-box" style="background-color:{c};">{c}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("<h3>Aesthetic</h3>", unsafe_allow_html=True)
+        st.markdown('<div class="pill-container">', unsafe_allow_html=True)
         for a in dna.get('aesthetic', []):
-            st.markdown(f"<span class='badge'>{a.get('keyword')}</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="pill">{a.get("keyword")}</div>', unsafe_allow_html=True)
+        st.markdown('</div></div>', unsafe_allow_html=True)
 
     with c2:
-        st.markdown("<div class='tech-card' style='height:100%;'>", unsafe_allow_html=True)
-        st.markdown("<h3>Core Strategy</h3><br>", unsafe_allow_html=True)
-        st.markdown(f"<p style='color: #E5E7EB; line-height: 1.6;'>{dna.get('concept')}</p>", unsafe_allow_html=True)
-        
-        st.markdown("<br><p class='text-sm'>VALUES</p>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-card' style='height:100%;'>", unsafe_allow_html=True)
+        st.markdown("<h3>Core Values</h3>", unsafe_allow_html=True)
+        st.markdown('<div class="pill-container">', unsafe_allow_html=True)
         for v in dna.get('values', []):
-            st.markdown(f"<span class='badge' style='color: #A78BFA; background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2);'>{v.get('value')}</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="pill">{v.get("value")}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
+    # Bouton centré via colonnes
     b1, b2, b3 = st.columns([1, 1, 1])
     with b2:
-        if st.button("Generate Campaigns"):
+        if st.button("GENERATE CAMPAIGNS"):
             st.session_state.step = 3
             st.rerun()
 
 # --- PAGE 3: CAMPAIGNS ---
 elif st.session_state.step == 3:
     
-    # Loader Logic
     if not st.session_state.campaigns:
         st.markdown("""
-        <div class="fullscreen-loader">
-            <div class="loader-spinner"></div>
-            <h3 style="margin:0;">Generating Content</h3>
-            <p>Crafting strategy & Rendering visuals...</p>
+        <div class="loader-overlay">
+            <div class="pulse-text">PROJECT ONE</div>
+            <p style="color:#666; letter-spacing:3px; margin-top:20px;">CRAFTING VISUALS</p>
         </div>
         """, unsafe_allow_html=True)
+        
         st.session_state.campaigns = generate_strategy(st.session_state.dna)
         for camp in st.session_state.campaigns:
             img = generate_image_imagen(camp['visual_prompt'])
             if img: st.session_state.images[camp['id']] = img
         st.rerun()
 
-    st.markdown("<h2 class='text-center mb-4'>Strategic Campaigns</h2>", unsafe_allow_html=True)
-
+    st.markdown("<h2>STRATEGIC CAMPAIGNS</h2>", unsafe_allow_html=True)
+    
     for camp in st.session_state.campaigns:
         cid = camp['id']
-        st.markdown("<div class='tech-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-card'>", unsafe_allow_html=True)
         
         cols = st.columns([1, 1])
         with cols[0]:
-            st.markdown(f"<div class='badge'>CAMPAIGN 0{cid}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-family:Playfair Display; font-size:3rem; color:#333; margin-bottom:10px;'>0{cid}</div>", unsafe_allow_html=True)
             st.markdown(f"<h3>{camp['title']}</h3>", unsafe_allow_html=True)
-            st.markdown(f"<p style='margin-top:1rem; line-height:1.6;'>{camp['strategy']}</p>", unsafe_allow_html=True)
+            # Stratégie plus longue
+            st.markdown(f"<p style='color:#CCC; margin-top:15px;'>{camp['strategy']}</p>", unsafe_allow_html=True)
             
-            with st.expander("View Visual Prompt"):
-                st.code(camp['visual_prompt'], language="text")
+            with st.expander("View Prompt Data"):
+                st.code(camp['visual_prompt'])
 
         with cols[1]:
             if cid in st.session_state.images:
                 st.image(st.session_state.images[cid], use_container_width=True)
             else:
-                st.warning("Visual rendering unavailable.")
+                # Message d'erreur propre
+                st.warning("Image generation failed. (API limit or Filter)")
         
         st.markdown("</div>", unsafe_allow_html=True)
 
     b1, b2, b3 = st.columns([1, 1, 1])
     with b2:
-        if st.button("Start Over"):
+        if st.button("START OVER"):
             st.session_state.clear()
             st.rerun()
