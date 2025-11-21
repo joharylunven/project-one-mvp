@@ -139,6 +139,26 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
+    /* --- CTA SECTION --- */
+    .cta-container {
+        text-align: center;
+        padding: 60px 20px;
+        background: linear-gradient(180deg, rgba(11,13,17,0) 0%, rgba(20,25,35,0.4) 100%);
+        border-radius: 8px;
+        margin-top: 40px;
+    }
+    .cta-heading {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 10px;
+    }
+    .cta-sub {
+        font-size: 1.1rem;
+        color: #9ca3af;
+        margin-bottom: 30px;
+    }
+
     /* --- BUTTONS --- */
     .stButton button {
         background-color: #3b82f6;
@@ -230,7 +250,7 @@ def get_brand_data(url):
         return None
 
 def generate_campaign_strategy(brand_data):
-    """Gemini 2.0 Flash Strategy."""
+    """Gemini 2.0 Flash Strategy for 3 Campaigns."""
     try:
         model = genai.GenerativeModel('models/gemini-2.0-flash')
         prompt = f"""
@@ -255,6 +275,40 @@ def generate_campaign_strategy(brand_data):
         return json.loads(response.text)
     except:
         return []
+
+def generate_social_prompts(brand_data):
+    """Gemini 2.0 Flash for Bespoke Social Media Mockups (Insta & TikTok)."""
+    try:
+        model = genai.GenerativeModel('models/gemini-2.0-flash')
+        prompt = f"""
+        You are a Global Creative Director. 
+        Brand Data: {json.dumps(brand_data)}
+        
+        TASK: Create two extremely detailed image prompts for Nano Banana Pro.
+        1. Instagram Profile Mockup (Premium, Grid Layout)
+        2. TikTok Profile Mockup (Modern, Video Grid)
+        
+        Use this template structure for the prompts, but ADAPT EVERY DETAIL to the brand's industry, aesthetic, and colors:
+        
+        TEMPLATE REFERENCE (Do not copy, adapt):
+        "Subject: Hyper-realistic, macro shot of a bezel-less smartphone displaying the [APP NAME] profile for '[BRAND NAME]'. 
+        UI Style: Modern 2025 UI, Clean White Mode, Minimalist. 
+        Header: Bio reads '[BRAND TAGLINE]', highlights/accents in [HEX COLORS]. 
+        Grid Content: High-fidelity [INDUSTRY] photography. 
+        Specific Posts: 1. [Detail shot 1 related to brand], 2. [Lifestyle shot], 3. [Product texture macro], 4. [Atmospheric shot], 5. [Human element], 6. [Motion shot]. 
+        Aesthetic: [BRAND AESTHETIC KEYWORDS], Cinematic lighting. 
+        Tech Specs: Soft studio lighting, 8k, highly detailed, sharp focus, glassmorphism, premium product photography."
+
+        OUTPUT JSON:
+        {{
+            "instagram_final_prompt": "Full constructed string for Instagram...",
+            "tiktok_final_prompt": "Full constructed string for TikTok (focus on vertical video thumbnails, viral energy)..."
+        }}
+        """
+        response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+        return json.loads(response.text)
+    except:
+        return {"instagram_final_prompt": "", "tiktok_final_prompt": ""}
 
 def generate_image_from_prompt(prompt_text):
     """Nano Banana Pro Image Generation."""
@@ -284,6 +338,7 @@ def full_screen_loader(text):
 if 'step' not in st.session_state: st.session_state.step = 1
 if 'brand_data' not in st.session_state: st.session_state.brand_data = {}
 if 'campaigns' not in st.session_state: st.session_state.campaigns = []
+if 'social_images' not in st.session_state: st.session_state.social_images = {}
 
 # --- PAGE 1: URL INPUT ---
 if st.session_state.step == 1:
@@ -379,24 +434,41 @@ elif st.session_state.step == 2:
 # --- PAGE 3: STRATEGIC VISION ---
 elif st.session_state.step == 3:
     
-    if not st.session_state.campaigns:
+    # Generation Logic
+    if not st.session_state.campaigns or not st.session_state.social_images:
         placeholder = st.empty()
-        with placeholder: full_screen_loader("Crafting Visual Narratives...")
+        with placeholder: full_screen_loader("Crafting Visual Narratives & Social Ecosystem...")
         
-        campaign_data = generate_campaign_strategy(st.session_state.brand_data)
-        final_campaigns = []
-        for camp in campaign_data:
-            prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
-            if prompt:
-                img_data = generate_image_from_prompt(prompt)
-                camp['generated_image'] = img_data
-            final_campaigns.append(camp)
+        # 1. Campaigns (if not already done)
+        if not st.session_state.campaigns:
+            campaign_data = generate_campaign_strategy(st.session_state.brand_data)
+            final_campaigns = []
+            for camp in campaign_data:
+                prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
+                if prompt:
+                    img_data = generate_image_from_prompt(prompt)
+                    camp['generated_image'] = img_data
+                final_campaigns.append(camp)
+            st.session_state.campaigns = final_campaigns
         
-        st.session_state.campaigns = final_campaigns
+        # 2. Social Mockups (if not already done)
+        if not st.session_state.social_images:
+            social_prompts = generate_social_prompts(st.session_state.brand_data)
+            
+            # Instagram
+            if social_prompts.get("instagram_final_prompt"):
+                insta_img = generate_image_from_prompt(social_prompts["instagram_final_prompt"])
+                st.session_state.social_images['instagram'] = insta_img
+            
+            # TikTok
+            if social_prompts.get("tiktok_final_prompt"):
+                tiktok_img = generate_image_from_prompt(social_prompts["tiktok_final_prompt"])
+                st.session_state.social_images['tiktok'] = tiktok_img
+
         placeholder.empty()
         st.rerun()
 
-    # Result Display
+    # --- CONTENT DISPLAY ---
     st.markdown("<h1>Tailored Strategic Concepts</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color: #6b7280;'>AI-Curated Marketing Directions</p>", unsafe_allow_html=True)
     st.divider()
@@ -404,13 +476,12 @@ elif st.session_state.step == 3:
     if not st.session_state.campaigns:
         st.error("Strategy generation unavailable.")
         if st.button("Retry Protocol"):
-            st.session_state.campaigns = []
-            st.session_state.step = 2
+            st.session_state.clear()
             st.rerun()
     
+    # Campaigns Loop
     for i, campaign in enumerate(st.session_state.campaigns):
         with st.container():
-            # Using vertical_alignment="center" for perfect vertical centering
             col_text, col_img = st.columns([1, 1], gap="large", vertical_alignment="center")
             
             with col_text:
@@ -429,6 +500,41 @@ elif st.session_state.step == 3:
             
             st.markdown("---")
 
+    # --- SOCIAL PRESENCE SECTION ---
+    st.markdown("<br><h2 style='text-align:center;'>Omnichannel Presence</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#6b7280; margin-bottom: 40px;'>Ecosystem Expansion Visualization</p>", unsafe_allow_html=True)
+
+    s_col1, s_col2 = st.columns(2, gap="large")
+    
+    with s_col1:
+        st.markdown("<h4 style='text-align:center; margin-bottom:20px;'>Instagram Architecture</h4>", unsafe_allow_html=True)
+        if st.session_state.social_images.get('instagram'):
+            st.image(st.session_state.social_images['instagram'], use_column_width=True)
+        else:
+            st.info("Instagram mockup generation failed.")
+            
+    with s_col2:
+        st.markdown("<h4 style='text-align:center; margin-bottom:20px;'>TikTok Dynamic Flow</h4>", unsafe_allow_html=True)
+        if st.session_state.social_images.get('tiktok'):
+            st.image(st.session_state.social_images['tiktok'], use_column_width=True)
+        else:
+            st.info("TikTok mockup generation failed.")
+
+    # --- FINAL CTA ---
+    st.markdown("""
+        <div class="cta-container">
+            <div class="cta-heading">Ready to amplify your digital footprint?</div>
+            <div class="cta-sub">Transform these concepts into your reality. Let's define your future.</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Centering the button using columns
+    b1, b2, b3 = st.columns([1.5, 1, 1.5])
+    with b2:
+        st.button("Schedule a Consultation", use_container_width=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
     if st.button("Initialize New Analysis"):
         st.session_state.clear()
         st.rerun()
