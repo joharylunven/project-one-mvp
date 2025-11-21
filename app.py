@@ -235,7 +235,6 @@ def get_brand_data(url):
 def generate_campaign_strategy(brand_data):
     """Generates campaigns using Gemini 2.0 Flash."""
     try:
-        # Updated to available model in your list
         model = genai.GenerativeModel('models/gemini-2.0-flash')
         
         prompt = f"""
@@ -268,29 +267,23 @@ def generate_campaign_strategy(brand_data):
         return []
 
 def generate_image_from_prompt(prompt_text):
-    """Generates image using Imagen 4 (Preview)."""
+    """Generates image using Nano Banana (Gemini 3 Pro Preview)."""
     try:
-        # Using the specific model ID from your list
-        model = genai.GenerativeModel('models/imagen-4.0-generate-preview-06-06')
+        # Using Nano Banana Pro Preview
+        model = genai.GenerativeModel('models/nano-banana-pro-preview')
         
-        result = model.generate_images(
-            prompt=prompt_text,
-            number_of_images=1,
-            aspect_ratio="9:16",
-            safety_filter="block_only_high"
-        )
-        if result.images:
-            return result.images[0].image
+        # This model uses generate_content to return image blobs
+        response = model.generate_content(prompt_text)
+        
+        # Extract image data from response parts
+        if response.parts:
+            # The image data is usually in the first part
+            return response.parts[0].inline_data.data
+            
         return None
     except Exception as e:
-        print(f"Image Gen Error: {e}")
-        # Fallback attempt if 4.0 specific syntax differs in library version
-        try:
-             model = genai.GenerativeModel('models/imagen-3.0-generate-001')
-             result = model.generate_images(prompt=prompt_text)
-             return result.images[0].image
-        except:
-             return None
+        print(f"Nano Banana Gen Error: {e}")
+        return None
 
 # --- HELPER: Chip Renderer ---
 def render_chips(items, key_name='keyword'):
@@ -432,13 +425,14 @@ elif st.session_state.step == 3:
         # 1. Strategy
         campaign_data = generate_campaign_strategy(st.session_state.brand_data)
         
-        # 2. Images
+        # 2. Images (Using Nano Banana Pro)
         final_campaigns = []
         for camp in campaign_data:
             prompt = camp.get('image_prompt_structure', {}).get('final_constructed_prompt', '')
             if prompt:
-                img = generate_image_from_prompt(prompt)
-                camp['generated_image'] = img
+                # Call to Nano Banana
+                img_data = generate_image_from_prompt(prompt)
+                camp['generated_image'] = img_data
             final_campaigns.append(camp)
         
         st.session_state.campaigns = final_campaigns
@@ -473,7 +467,8 @@ elif st.session_state.step == 3:
             with c_img:
                 img = campaign.get('generated_image')
                 if img:
-                    st.image(img, caption="Generated Mockup", use_column_width=True)
+                    # Streamlit can display bytes directly
+                    st.image(img, caption="Nano Banana AI Mockup", use_column_width=True)
                 else:
                     st.info("Image generation unavailable.")
             
