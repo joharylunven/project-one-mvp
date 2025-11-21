@@ -230,9 +230,9 @@ def get_brand_data(url):
         # AJOUT DU LOGO ICI
         "logo": "the absolute url of the favicon.ico",
         "industry": "the business's industry or sector (e.g., tech, fashion)",
-        "concept": "a short 50-word summary of what the business does",
+        "concept": "a short 50-70-word summary of what the business does",
         "colors": {
-            "description": "list of the 5 main brand colors",
+            "description": "list of the 3 to 6 main brand colors (dominant colors)",
             "type": "list",
             "output": {"hex_code": "color in hexadecimal format (e.g., #1A1A1A)"}
         },
@@ -242,24 +242,24 @@ def get_brand_data(url):
             "output": {"font_name": "the name of the font", "use": "its main purpose (e.g., heading, body text)"}
         },
         "aesthetic": {
-            "description": "list of 3-5 keywords describing the brand aesthetic",
+            "description": "list of 4 keywords describing the brand aesthetic",
             "type": "list",
             "output": {"keyword": "a single keyword (e.g., minimalist, bold)"}
         },
         "values": {
-            "description": "a list of 3-5 brand values mentioned on the site",
+            "description": "a list of 4 brand values mentioned on the site",
             "type": "list",
             "output": {"value": "a single brand value (e.g., innovation, quality)"}
         },
         "tone": {
-            "description": "a list of 3-5 keywords for the brand's tone of voice",
+            "description": "a list of 4 keywords for the brand's tone of voice",
             "type": "list",
             "output": {"keyword": "a single tone keyword (e.g., professional, friendly)"}
         },
         "images": {
-            "description": "list of the 6 most relevant brand or product images",
+            "description": "list of the 4 most relevant brand or product images",
             "type": "list",
-            "output": {"src": "the full absolute URL of the image", "alt": "the alt text of the image"}
+            "output": {"src": "full absolute URL of the image", "alt": "the alt text of the image"}
         }
     }
 
