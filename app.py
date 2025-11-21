@@ -1,4 +1,4 @@
-import streamlit as st
+eimport streamlit as st
 import requests
 import json
 import google.generativeai as genai
@@ -228,7 +228,7 @@ def get_brand_data(url):
         "projectName": "the company or brand name",
         "tagline": "the website's main slogan or tagline",
         # AJOUT DU LOGO ICI
-        "logo": "the absolute url of the website's favicon or main logo",
+        "logo": "the absolute url of the website's favicon.ico",
         "industry": "the business's industry or sector (e.g., tech, fashion)",
         "concept": "a short 50-word summary of what the business does",
         "colors": {
@@ -288,7 +288,7 @@ def generate_campaign_strategy(brand_data):
         Brand Profile: {json.dumps(brand_data)}
 
         TASK: Create 3 high-end campaign concepts. 
-        For each, write a 'final_constructed_prompt' for image generation.
+        For each, write a hyper detailed 'final_constructed_prompt' for image generation.
         IMPORTANT: The image prompt must describe a CINEMATIC LANDSCAPE SHOT (16:9 aspect ratio). 
         Do NOT describe a phone screen. Describe a lifestyle or artistic commercial shot.
 
@@ -296,7 +296,7 @@ def generate_campaign_strategy(brand_data):
         [
           {{
             "campaign_name": "Name",
-            "campaign_description": "Strategic summary (30-40 words).",
+            "campaign_description": "Strategic summary (40-60 words).",
             "image_prompt_structure": {{
                  "final_constructed_prompt": "Subject: Wide cinematic shot of [Scene Description] related to [Brand]..." 
             }}
@@ -324,13 +324,13 @@ def generate_social_prompts(brand_data):
         
         1. Instagram Profile UI:
            - Subject: Direct full-screen UI design of the Instagram profile page for '{brand_data.get('projectName')}'.
-           - Details: Professional Bio, Highlights circles matching brand colors {brand_data.get('colors')}, 3-column grid with high-end photography.
-           - Style: Flat design, Digital Interface, 8k resolution, Figma export style.
+           - Details: Professional Bio, Highlights circles with photos matching brand colors {brand_data.get('colors')}, 3-column grid with high-end photography.
+           - Style: Flat design, 100% Instagram UI like, Digital Interface, 8k resolution, Figma export style.
 
         2. TikTok Profile UI:
            - Subject: Direct full-screen UI design of the TikTok profile page for '{brand_data.get('projectName')}'.
            - Details: User handle, 'Edit Profile' button, 3-column video grid with viral-style thumbnails.
-           - Style: Dark/Light mode adapted to brand, Digital Interface, 8k resolution.
+           - Style: 100% like TikTok interface/UI, Dark/Light mode adapted to brand, Digital Interface, 8k resolution.
 
         OUTPUT JSON:
         {{
