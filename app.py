@@ -226,33 +226,37 @@ st.markdown("""
 
 # --- BACKEND LOGIC ---
 
+from urllib.parse import urlparse, urljoin
+
 def get_brand_data(url):
-    """Extraction ScrapingBee avec correctifs : Logo Google, Fallback Couleurs et Images Force Brute."""
+    """
+    Final Robust Extraction:
+    1. Forces Absolute URLs for images (Python-side logic).
+    2. Filters Bootstrap default colors.
+    3. Uses Google Favicon for the logo.
+    """
     
-    # 1. Nettoyage de l'URL pour le scraping
+    # --- 1. SETUP URL & BASE ---
     target_url = url if url.startswith("http") else f"https://{url}"
     
-    # 2. PRÉPARATION DU LOGO (Méthode Google API Robuste)
-    from urllib.parse import urlparse
+    # Parse domain for Google Favicon (remove www for better hit rate)
     parsed_uri = urlparse(target_url)
-    domain = parsed_uri.netloc # ex: www.rhinovate.ai ou rhinovate.ai
-    
-    # CORRECTIF DEMANDÉ : On enlève le 'www.' s'il est présent
+    domain = parsed_uri.netloc
     if domain.startswith("www."):
         domain = domain[4:]
-        
+    
     google_favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
 
-    # 3. NOUVELLES RÈGLES DE SCRAPING (Plus permissives pour les images)
+    # --- 2. EXTRACTION RULES ---
     extract_rules = {
-        "projectName": "The official name of the company found in header or title.",
-        "tagline": "The main slogan or H1 text from the hero section.",
-        "industry": "The industry sector inferred from the content.",
-        "concept": "A 50-word summary of the business.",
+        "projectName": "The official name of the company.",
+        "tagline": "The main slogan found in the hero section.",
+        "industry": "The specific industry sector.",
+        "concept": "A 50-word summary of what the business does.",
         
-        # Stratégie Couleurs : On cherche les Codes HEX bruts
+        # Color Rule (Visual-First)
         "colors": {
-            "description": "Find 5 distinct HEX color codes (e.g. #FF5500) in style attributes or infer them from CSS classes.",
+            "description": "Analyze the VISIBLE design. Return exactly 3 to 5 colors found in: 1. Page Background. 2. Primary Text. 3. Main Call-to-Action Button. Exclude standard framework defaults.",
             "type": "list",
             "output": {"hex_code": "The 6-digit hex code"}
         },
@@ -264,7 +268,7 @@ def get_brand_data(url):
         },
         
         "aesthetic": {
-            "description": "4 adjectives for visual style.",
+            "description": "4 adjectives describing the visual style.",
             "type": "list",
             "output": {"keyword": "Adjective"}
         },
@@ -281,20 +285,20 @@ def get_brand_data(url):
             "output": {"keyword": "Tone"}
         },
         
-        # Stratégie Images : Force Brute (On prend tout ce qui est grand)
+        # Image Rule (Broad Search)
         "images": {
-            "description": "Strictly find 4 distinct image URLs. 1. Start with 'og:image'. 2. Take the largest <img> tags from the body. 3. Ignore SVGs and tiny icons. 4. Ensure URLs are absolute.",
+            "description": "Find exactly 4 distinct image URLs. Priority: 1. 'og:image'. 2. Largest <img> tags in body. 3. Screenshots or Dashboard previews. Ignore icons/SVGs.",
             "type": "list",
-            "output": {"src": "Absolute URL", "alt": "Description"}
+            "output": {"src": "Image Source URL", "alt": "Description"}
         }
     }
 
     params = {
         "api_key": SCRAPINGBEE_API_KEY,
-        "url": target_url, 
+        "url": target_url,
         "block_resources": "false",
-        "render_js": "true",  # Important pour charger les images JS
-        "wait": "4000",       # On attend un peu plus que le site charge
+        "render_js": "true",
+        "wait": "4000",
         "ai_extract_rules": json.dumps(extract_rules)
     }
 
@@ -304,25 +308,46 @@ def get_brand_data(url):
             data = response.json()
             
             if data:
-                # A. APPLICATION FORCÉE DU LOGO GOOGLE
+                # --- FIX 1: LOGO (Google API) ---
                 data['logo'] = google_favicon_url
                 
-                # B. FALLBACK COULEURS (Si l'IA ne trouve rien, on met du défaut pour éviter le bug d'affichage)
-                if not data.get('colors') or len(data['colors']) == 0:
-                    data['colors'] = [
-                        {"hex_code": "#111827"}, # Dark Gray
-                        {"hex_code": "#3B82F6"}, # Blue
-                        {"hex_code": "#FFFFFF"}  # White
-                    ]
-                
-                # C. NETTOYAGE DES IMAGES (On filtre les placeholders vides)
+                # --- FIX 2: IMAGES (Absolute URL Reconstruction) ---
+                # This loop fixes the src="/dashboard.png" issue
                 if data.get('images'):
-                    data['images'] = [img for img in data['images'] if img.get('src') and not img.get('src').startswith('data:')]
+                    cleaned_images = []
+                    for img in data['images']:
+                        src = img.get('src', '')
+                        if src and not src.startswith('data:'): # Ignore base64
+                            # If it starts with /, join it with the target_url (e.g. https://rhinovate.ai)
+                            # urljoin handles intelligent merging of base + relative path
+                            absolute_src = urljoin(target_url, src)
+                            img['src'] = absolute_src
+                            cleaned_images.append(img)
+                    data['images'] = cleaned_images
+
+                # --- FIX 3: COLORS (Anti-Bootstrap Filter) ---
+                bootstrap_defaults = ["#007BFF", "#28A745", "#DC3545", "#FFC107", "#17A2B8", "#6C757D"]
+                if data.get('colors'):
+                    # Filter out defaults
+                    filtered = [c for c in data['colors'] if c.get('hex_code', '').upper() not in bootstrap_defaults]
+                    
+                    # If empty after filtering, provide a safe fallback
+                    if not filtered:
+                        data['colors'] = [
+                            {"hex_code": "#FFFFFF"}, # White
+                            {"hex_code": "#000000"}, # Black
+                            {"hex_code": "#3B82F6"}  # Standard Blue
+                        ]
+                    else:
+                        data['colors'] = filtered
+                else:
+                    # Provide fallback if no colors found
+                    data['colors'] = [{"hex_code": "#FFFFFF"}, {"hex_code": "#000000"}]
 
             return data
         return None
     except Exception as e:
-        print(f"Erreur API: {e}")
+        print(f"API Error: {e}")
         return None
 
 def generate_campaign_strategy(brand_data):
