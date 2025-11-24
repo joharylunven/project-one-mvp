@@ -229,43 +229,53 @@ st.markdown("""
 def get_brand_data(url):
     """ScrapingBee Extraction."""
     target_url = url if url.startswith("http") else f"https://{url}"
-    
+
     extract_rules = {
-        "projectName": "the company or brand name",
-        "tagline": "the website's main slogan or tagline",
-        # AJOUT DU LOGO ICI
-        "logo": "the absolute url of the favicon.ico",
-        "industry": "the business's industry or sector (e.g., tech, fashion)",
-        "concept": "a short 50-70-word summary of what the business does",
+        "projectName": "The official name of the company or brand found in the title or header.",
+        "tagline": "The main marketing slogan or tagline usually found in the hero section.",
+        
+        # --- AMÉLIORATION LOGO ---
+        "logo": "The absolute URL of the favicon or main logo. Priority: 1. Check <link rel='icon'> or <link rel='shortcut icon'>. 2. Check <link rel='apple-touch-icon'>. 3. Look for the main logo in the <header>. IMPORTANT: If the URL is relative (starts with '/'), prepend the website base URL to make it absolute. Do not return data:image strings.",
+        
+        "industry": "The specific industry sector (e.g., SaaS, High-End Fashion, Organic Skincare).",
+        "concept": "A concise 50-word summary of the unique value proposition.",
+        
+        # --- AMÉLIORATION COULEURS ---
         "colors": {
-            "description": "list of the 3 to 6 main brand colors (dominant colors)",
+            "description": "The 5 distinct dominant hex colors. STRATEGY: 1. Look for CSS variables in :root (e.g., --primary, --accent). 2. Analyze the 'background-color' of the <header>, <footer>, and primary 'Call to Action' buttons. 3. Ignore pure black (#000000) or white (#FFFFFF) unless they are clearly part of the brand identity.",
             "type": "list",
-            "output": {"hex_code": "color in hexadecimal format (e.g., #1A1A1A)"}
+            "output": {"hex_code": "The 6-digit hex code (e.g., #FF5733)"}
         },
+        
         "fonts": {
-            "description": "list of the 2 main font names used",
+            "description": "List of the 2 primary font-family names used.",
             "type": "list",
-            "output": {"font_name": "the name of the font", "use": "its main purpose (e.g., heading, body text)"}
+            "output": {"font_name": "Name of the font", "use": "Header or Body"}
         },
+        
         "aesthetic": {
-            "description": "list of 4 keywords describing the brand aesthetic",
+            "description": "4 adjectives describing the visual style (e.g., minimalist, brutalist, corporate, playful).",
             "type": "list",
-            "output": {"keyword": "a single keyword (e.g., minimalist, bold)"}
+            "output": {"keyword": "Adjective"}
         },
+        
         "values": {
-            "description": "a list of 4 brand values mentioned on the site",
+            "description": "4 core values or pillars mentioned in the 'About' or 'Mission' sections.",
             "type": "list",
-            "output": {"value": "a single brand value (e.g., innovation, quality)"}
+            "output": {"value": "Value keyword"}
         },
+        
         "tone": {
-            "description": "a list of 4 keywords for the brand's tone of voice",
+            "description": "4 keywords defining the copywriting tone (e.g., witty, academic, luxurious).",
             "type": "list",
-            "output": {"keyword": "a single tone keyword (e.g., professional, friendly)"}
+            "output": {"keyword": "Tone keyword"}
         },
+        
+        # --- AMÉLIORATION IMAGES ---
         "images": {
-            "description": "4 most relevant brand or product images",
+            "description": "The 4 most representative high-resolution photography images. RULES: 1. PRIORITY: Get the content of 'meta property=og:image'. 2. Get large images from the <main> section (products or lifestyle). 3. STRICTLY EXCLUDE: images starting with 'data:image' (base64), SVGs, icons, and transparent GIFs. 4. If 'data-src' exists, use it instead of 'src'. 5. MUST BE Absolute URLs.",
             "type": "list",
-            "output": {"src": "valid absolute URL of the image", "alt": "the alt text of the image"}
+            "output": {"src": "Absolute URL string (https://...)", "alt": "Description of the image"}
         }
     }
 
