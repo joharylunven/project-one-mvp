@@ -229,63 +229,54 @@ st.markdown("""
 from urllib.parse import urlparse, urljoin
 
 def get_brand_data(url):
-    """
-    Final Robust Extraction:
-    1. Forces Absolute URLs for images (Python-side logic).
-    2. Filters Bootstrap default colors.
-    3. Uses Google Favicon for the logo.
-    """
-    
     # --- 1. SETUP URL & BASE ---
     target_url = url if url.startswith("http") else f"https://{url}"
     
-    # Parse domain for Google Favicon (remove www for better hit rate)
+    # Extraction du domaine propre (sans www) pour le Logo ET les Images
+    from urllib.parse import urlparse, urljoin
     parsed_uri = urlparse(target_url)
-    domain = parsed_uri.netloc
-    if domain.startswith("www."):
-        domain = domain[4:]
+    clean_domain = parsed_uri.netloc
     
-    google_favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
+    # Si le domaine commence par www., on l'enlève
+    if clean_domain.startswith("www."):
+        clean_domain = clean_domain[4:]
+    
+    # URL de base "propre" pour reconstruire les liens (ex: https://rhinovate.ai)
+    clean_base_url = f"{parsed_uri.scheme}://{clean_domain}"
+    
+    google_favicon_url = f"https://www.google.com/s2/favicons?domain={clean_domain}&sz=128"
 
-    # --- 2. EXTRACTION RULES ---
+    # --- 2. EXTRACTION RULES (Reste identique) ---
     extract_rules = {
         "projectName": "The official name of the company.",
         "tagline": "The main slogan found in the hero section.",
         "industry": "The specific industry sector.",
         "concept": "A 50-word summary of what the business does.",
-        
-        # Color Rule (Visual-First)
         "colors": {
             "description": "Analyze the VISIBLE design. Return exactly 3 to 5 colors found in: 1. Page Background. 2. Primary Text. 3. Main Call-to-Action Button. Exclude standard framework defaults.",
             "type": "list",
             "output": {"hex_code": "The 6-digit hex code"}
         },
-        
         "fonts": {
             "description": "List of 2 font families used.",
             "type": "list",
             "output": {"font_name": "Font Name", "use": "Header/Body"}
         },
-        
         "aesthetic": {
             "description": "4 adjectives describing the visual style.",
             "type": "list",
             "output": {"keyword": "Adjective"}
         },
-        
         "values": {
             "description": "4 brand values.",
             "type": "list",
             "output": {"value": "Value"}
         },
-        
         "tone": {
             "description": "4 tone-of-voice keywords.",
             "type": "list",
             "output": {"keyword": "Tone"}
         },
-        
-        # Image Rule (Broad Search)
         "images": {
             "description": "Find exactly 4 distinct image URLs. Priority: 1. 'og:image'. 2. Largest <img> tags in body. 3. Screenshots or Dashboard previews. Ignore icons/SVGs.",
             "type": "list",
@@ -308,19 +299,18 @@ def get_brand_data(url):
             data = response.json()
             
             if data:
-                # --- FIX 1: LOGO (Google API) ---
+                # --- FIX 1: LOGO (Google API sans www) ---
                 data['logo'] = google_favicon_url
                 
-                # --- FIX 2: IMAGES (Absolute URL Reconstruction) ---
-                # This loop fixes the src="/dashboard.png" issue
+                # --- FIX 2: IMAGES (Reconstruction sur base propre sans www) ---
                 if data.get('images'):
                     cleaned_images = []
                     for img in data['images']:
                         src = img.get('src', '')
-                        if src and not src.startswith('data:'): # Ignore base64
-                            # If it starts with /, join it with the target_url (e.g. https://rhinovate.ai)
-                            # urljoin handles intelligent merging of base + relative path
-                            absolute_src = urljoin(target_url, src)
+                        if src and not src.startswith('data:'): 
+                            # C'EST ICI QUE LA MAGIE OPÈRE :
+                            # On utilise clean_base_url (https://rhinovate.ai) au lieu de target_url
+                            absolute_src = urljoin(clean_base_url, src)
                             img['src'] = absolute_src
                             cleaned_images.append(img)
                     data['images'] = cleaned_images
@@ -328,20 +318,12 @@ def get_brand_data(url):
                 # --- FIX 3: COLORS (Anti-Bootstrap Filter) ---
                 bootstrap_defaults = ["#007BFF", "#28A745", "#DC3545", "#FFC107", "#17A2B8", "#6C757D"]
                 if data.get('colors'):
-                    # Filter out defaults
                     filtered = [c for c in data['colors'] if c.get('hex_code', '').upper() not in bootstrap_defaults]
-                    
-                    # If empty after filtering, provide a safe fallback
                     if not filtered:
-                        data['colors'] = [
-                            {"hex_code": "#FFFFFF"}, # White
-                            {"hex_code": "#000000"}, # Black
-                            {"hex_code": "#3B82F6"}  # Standard Blue
-                        ]
+                        data['colors'] = [{"hex_code": "#FFFFFF"}, {"hex_code": "#000000"}, {"hex_code": "#3B82F6"}]
                     else:
                         data['colors'] = filtered
                 else:
-                    # Provide fallback if no colors found
                     data['colors'] = [{"hex_code": "#FFFFFF"}, {"hex_code": "#000000"}]
 
             return data
