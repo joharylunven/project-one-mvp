@@ -232,31 +232,30 @@ def get_brand_data(url):
     # --- 1. SETUP URL & BASE ---
     target_url = url if url.startswith("http") else f"https://{url}"
     
-    # Extraction du domaine propre (sans www) pour le Logo ET les Images
     from urllib.parse import urlparse, urljoin
     parsed_uri = urlparse(target_url)
     clean_domain = parsed_uri.netloc
     
-    # Si le domaine commence par www., on l'enlève
     if clean_domain.startswith("www."):
         clean_domain = clean_domain[4:]
     
-    # URL de base "propre" pour reconstruire les liens (ex: https://rhinovate.ai)
     clean_base_url = f"{parsed_uri.scheme}://{clean_domain}"
-    
     google_favicon_url = f"https://www.google.com/s2/favicons?domain={clean_domain}&sz=128"
 
-    # --- 2. EXTRACTION RULES (Reste identique) ---
+    # --- 2. EXTRACTION RULES (OPTIMIZED FOR CLASS-TO-HEX CONVERSION) ---
     extract_rules = {
         "projectName": "The official name of the company.",
         "tagline": "The main slogan found in the hero section.",
         "industry": "The specific industry sector.",
         "concept": "A 50-word summary of what the business does.",
+        
+        # --- COLOR STRATEGY: INFERENCE & TRANSLATION ---
         "colors": {
-            "description": "Analyze the VISIBLE design. Return exactly 3 to 5 colors found in: 1. Page Background. 2. Primary Text. 3. Main Call-to-Action Button. Exclude standard framework defaults.",
+            "description": "Analyze the visual design. RULES: 1. Find the 'Primary Action Color' (used on buttons like 'Get Started'). 2. If you see CSS classes like 'bg-blue-600', 'text-indigo-500' or 'btn-primary', YOU MUST INFER the standard Hex code (e.g. Blue-600 is #2563EB). 3. Return 4 colors: Main Background, Main Text, Primary Accent, Secondary Accent.",
             "type": "list",
-            "output": {"hex_code": "The 6-digit hex code"}
+            "output": {"hex_code": "The 6-digit hex code (e.g. #2563EB)"}
         },
+        
         "fonts": {
             "description": "List of 2 font families used.",
             "type": "list",
@@ -278,7 +277,7 @@ def get_brand_data(url):
             "output": {"keyword": "Tone"}
         },
         "images": {
-            "description": "Find exactly 4 distinct image URLs. Priority: 1. 'og:image'. 2. Largest <img> tags in body. 3. Screenshots or Dashboard previews. Ignore icons/SVGs.",
+            "description": "Find exactly 4 distinct image URLs. Priority: 1. 'og:image'. 2. Largest <img> tags in body. 3. Screenshots. Ignore icons/SVGs.",
             "type": "list",
             "output": {"src": "Image Source URL", "alt": "Description"}
         }
@@ -299,32 +298,53 @@ def get_brand_data(url):
             data = response.json()
             
             if data:
-                # --- FIX 1: LOGO (Google API sans www) ---
+                # --- FIX 1: LOGO ---
                 data['logo'] = google_favicon_url
                 
-                # --- FIX 2: IMAGES (Reconstruction sur base propre sans www) ---
+                # --- FIX 2: IMAGES (Absolute URLs) ---
                 if data.get('images'):
                     cleaned_images = []
                     for img in data['images']:
                         src = img.get('src', '')
                         if src and not src.startswith('data:'): 
-                            # C'EST ICI QUE LA MAGIE OPÈRE :
-                            # On utilise clean_base_url (https://rhinovate.ai) au lieu de target_url
                             absolute_src = urljoin(clean_base_url, src)
                             img['src'] = absolute_src
                             cleaned_images.append(img)
                     data['images'] = cleaned_images
 
-                # --- FIX 3: COLORS (Anti-Bootstrap Filter) ---
-                bootstrap_defaults = ["#007BFF", "#28A745", "#DC3545", "#FFC107", "#17A2B8", "#6C757D"]
-                if data.get('colors'):
-                    filtered = [c for c in data['colors'] if c.get('hex_code', '').upper() not in bootstrap_defaults]
-                    if not filtered:
-                        data['colors'] = [{"hex_code": "#FFFFFF"}, {"hex_code": "#000000"}, {"hex_code": "#3B82F6"}]
-                    else:
-                        data['colors'] = filtered
-                else:
-                    data['colors'] = [{"hex_code": "#FFFFFF"}, {"hex_code": "#000000"}]
+                # --- FIX 3: COLORS (SMART FALLBACK) ---
+                # We removed the aggressive "Bootstrap Filter".
+                # Instead, we check if the result is "Boring" (only Black/White/Gray).
+                
+                found_colors = data.get('colors', [])
+                
+                # Helper to check if a hex is "colorful" (not grayscale)
+                def is_colorful(hex_code):
+                    if not hex_code or len(hex_code) < 7: return False
+                    try:
+                        h = hex_code.lstrip('#')
+                        r, g, b = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+                        # If R, G, and B are very close, it's gray/black/white
+                        return max(r,g,b) - min(r,g,b) > 20 
+                    except:
+                        return False
+
+                has_color = any(is_colorful(c.get('hex_code')) for c in found_colors)
+
+                # If the AI only found Black/White, we inject a "Safe Tech Blue"
+                # This ensures your UI never looks broken.
+                if not has_color:
+                    # Add a standard "Brand Blue" to the list
+                    found_colors.append({"hex_code": "#3B82F6"}) 
+                    
+                # Ensure we always have Black & White for the UI structure
+                has_white = any(c.get('hex_code').upper() in ['#FFFFFF', '#FFF'] for c in found_colors)
+                has_black = any(c.get('hex_code').upper() in ['#000000', '#000'] for c in found_colors)
+                
+                if not has_white: found_colors.insert(0, {"hex_code": "#FFFFFF"})
+                if not has_black: found_colors.append({"hex_code": "#000000"})
+                
+                data['colors'] = found_colors
 
             return data
         return None
