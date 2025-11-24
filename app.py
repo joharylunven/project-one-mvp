@@ -231,51 +231,47 @@ def get_brand_data(url):
     target_url = url if url.startswith("http") else f"https://{url}"
 
     extract_rules = {
-        "projectName": "The official name of the company or brand found in the title or header.",
-        "tagline": "The main marketing slogan or tagline usually found in the hero section.",
+        "projectName": "The official name of the company.",
+        "tagline": "The main slogan found in the hero section.",
+        "industry": "The specific industry sector.",
+        "concept": "A 50-word summary of what the business does.",
         
-        # --- AMÉLIORATION LOGO ---
-        "logo": "The absolute URL of the favicon or main logo. Priority: 1. Check <link rel='icon'> or <link rel='shortcut icon'>. 2. Check <link rel='apple-touch-icon'>. 3. Look for the main logo in the <header>. IMPORTANT: If the URL is relative (starts with '/'), prepend the website base URL to make it absolute. Do not return data:image strings.",
-        
-        "industry": "The specific industry sector (e.g., SaaS, High-End Fashion, Organic Skincare).",
-        "concept": "A concise 50-word summary of the unique value proposition.",
-        
-        # --- AMÉLIORATION COULEURS ---
+        # --- STRATÉGIE COULEURS : ON CHERCHE LES HEXADÉCIMAUX BRUTS ---
         "colors": {
-            "description": "The 5 distinct dominant hex colors. STRATEGY: 1. Look for CSS variables in :root (e.g., --primary, --accent). 2. Analyze the 'background-color' of the <header>, <footer>, and primary 'Call to Action' buttons. 3. Ignore pure black (#000000) or white (#FFFFFF) unless they are clearly part of the brand identity.",
+            "description": "Find 5 distinct HEX color codes present in the HTML style attributes or implied by class names. INSTRUCTION: Scan 'style=' attributes for hex codes (e.g. #FFFFFF). If none found, infer standard colors based on the brand logo or industry standards.",
             "type": "list",
-            "output": {"hex_code": "The 6-digit hex code (e.g., #FF5733)"}
+            "output": {"hex_code": "The 6-digit hex code (e.g. #F3F4F6)"}
         },
         
         "fonts": {
-            "description": "List of the 2 primary font-family names used.",
+            "description": "List of 2 font families mentioned in style attributes.",
             "type": "list",
-            "output": {"font_name": "Name of the font", "use": "Header or Body"}
+            "output": {"font_name": "Font Name", "use": "Header/Body"}
         },
         
         "aesthetic": {
-            "description": "4 adjectives describing the visual style (e.g., minimalist, brutalist, corporate, playful).",
+            "description": "4 adjectives describing the visual style.",
             "type": "list",
             "output": {"keyword": "Adjective"}
         },
         
         "values": {
-            "description": "4 core values or pillars mentioned in the 'About' or 'Mission' sections.",
+            "description": "4 brand values.",
             "type": "list",
-            "output": {"value": "Value keyword"}
+            "output": {"value": "Value"}
         },
         
         "tone": {
-            "description": "4 keywords defining the copywriting tone (e.g., witty, academic, luxurious).",
+            "description": "4 tone-of-voice keywords.",
             "type": "list",
-            "output": {"keyword": "Tone keyword"}
+            "output": {"keyword": "Tone"}
         },
         
-        # --- AMÉLIORATION IMAGES ---
+        # --- STRATÉGIE IMAGES : FORCE BRUTE ---
         "images": {
-            "description": "The 4 most representative high-resolution photography images. RULES: 1. PRIORITY: Get the content of 'meta property=og:image'. 2. Get large images from the <main> section (products or lifestyle). 3. STRICTLY EXCLUDE: images starting with 'data:image' (base64), SVGs, icons, and transparent GIFs. 4. If 'data-src' exists, use it instead of 'src'. 5. MUST BE Absolute URLs.",
+            "description": "Strictly find exactly 4 distinct image URLs. INSTRUCTION: 1. Start with the 'og:image' meta tag. 2. Then take the 3 largest images found in <img> tags anywhere in the body. 3. IGNORE icons, svgs, and base64. 4. If an image url is relative (starts with /), PREPEND the base URL.",
             "type": "list",
-            "output": {"src": "Absolute URL string (https://...)", "alt": "Description of the image"}
+            "output": {"src": "The absolute image URL", "alt": "Description"}
         }
     }
 
@@ -283,16 +279,39 @@ def get_brand_data(url):
         "api_key": SCRAPINGBEE_API_KEY,
         "url": target_url,
         "block_resources": "false",
-        "wait": "3000", 
+        "render_js": "true", # <-- IMPORTANT : Force le rendu JS pour avoir le DOM final
+        "wait": "5000",      # <-- Augmente un peu (3000 -> 5000) pour laisser le temps aux images de charger
         "ai_extract_rules": json.dumps(extract_rules)
     }
+    
+    # Assure-toi que l'URL est propre pour Google (juste le domaine)
+    from urllib.parse import urlparse
+    parsed_uri = urlparse(url if url.startswith("http") else f"https://{url}")
+    domain = parsed_uri.netloc # ex: www.apple.com
+    
+    # L'astuce Google Favicon (Qualité HD)
+    google_favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
 
     try:
         response = requests.get("https://app.scrapingbee.com/api/v1", params=params)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            
+            # --- PATCH MANUEL DU LOGO ---
+            # On écrase ce que l'IA a trouvé (ou pas trouvé) avec la version HD Google
+            if data:
+                data['logo'] = google_favicon_url
+                
+                # --- PATCH MANUEL DES COULEURS (FALLBACK) ---
+                # Si l'IA n'a rien trouvé (liste vide), on met du noir et blanc par défaut
+                # pour éviter que ton UI ne plante.
+                if not data.get('colors'):
+                     data['colors'] = [{"hex_code": "#000000"}, {"hex_code": "#FFFFFF"}]
+                     
+            return data
         return None
-    except:
+    except Exception as e:
+        print(f"Erreur: {e}")
         return None
 
 def generate_campaign_strategy(brand_data):
