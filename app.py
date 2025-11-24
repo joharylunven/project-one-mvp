@@ -227,30 +227,44 @@ st.markdown("""
 # --- BACKEND LOGIC ---
 
 def get_brand_data(url):
-    """ScrapingBee Extraction."""
+    """Extraction ScrapingBee avec correctifs : Logo Google, Fallback Couleurs et Images Force Brute."""
+    
+    # 1. Nettoyage de l'URL pour le scraping
     target_url = url if url.startswith("http") else f"https://{url}"
-
-    extract_rules = {
-        "projectName": "The official name of the company.",
-        "tagline": "The main slogan found in the hero section.",
-        "industry": "The specific industry sector.",
-        "concept": "A 50-word summary of what the business does.",
+    
+    # 2. PRÉPARATION DU LOGO (Méthode Google API Robuste)
+    from urllib.parse import urlparse
+    parsed_uri = urlparse(target_url)
+    domain = parsed_uri.netloc # ex: www.rhinovate.ai ou rhinovate.ai
+    
+    # CORRECTIF DEMANDÉ : On enlève le 'www.' s'il est présent
+    if domain.startswith("www."):
+        domain = domain[4:]
         
-        # --- STRATÉGIE COULEURS : ON CHERCHE LES HEXADÉCIMAUX BRUTS ---
+    google_favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
+
+    # 3. NOUVELLES RÈGLES DE SCRAPING (Plus permissives pour les images)
+    extract_rules = {
+        "projectName": "The official name of the company found in header or title.",
+        "tagline": "The main slogan or H1 text from the hero section.",
+        "industry": "The industry sector inferred from the content.",
+        "concept": "A 50-word summary of the business.",
+        
+        # Stratégie Couleurs : On cherche les Codes HEX bruts
         "colors": {
-            "description": "Find 5 distinct HEX color codes present in the HTML style attributes or implied by class names. INSTRUCTION: Scan 'style=' attributes for hex codes (e.g. #FFFFFF). If none found, infer standard colors based on the brand logo or industry standards.",
+            "description": "Find 5 distinct HEX color codes (e.g. #FF5500) in style attributes or infer them from CSS classes.",
             "type": "list",
-            "output": {"hex_code": "The 6-digit hex code (e.g. #F3F4F6)"}
+            "output": {"hex_code": "The 6-digit hex code"}
         },
         
         "fonts": {
-            "description": "List of 2 font families mentioned in style attributes.",
+            "description": "List of 2 font families used.",
             "type": "list",
             "output": {"font_name": "Font Name", "use": "Header/Body"}
         },
         
         "aesthetic": {
-            "description": "4 adjectives describing the visual style.",
+            "description": "4 adjectives for visual style.",
             "type": "list",
             "output": {"keyword": "Adjective"}
         },
@@ -267,51 +281,48 @@ def get_brand_data(url):
             "output": {"keyword": "Tone"}
         },
         
-        # --- STRATÉGIE IMAGES : FORCE BRUTE ---
+        # Stratégie Images : Force Brute (On prend tout ce qui est grand)
         "images": {
-            "description": "Strictly find exactly 4 distinct image URLs. INSTRUCTION: 1. Start with the 'og:image' meta tag. 2. Then take the 3 largest images found in <img> tags anywhere in the body. 3. IGNORE icons, svgs, and base64. 4. If an image url is relative (starts with /), PREPEND the base URL.",
+            "description": "Strictly find 4 distinct image URLs. 1. Start with 'og:image'. 2. Take the largest <img> tags from the body. 3. Ignore SVGs and tiny icons. 4. Ensure URLs are absolute.",
             "type": "list",
-            "output": {"src": "The absolute image URL", "alt": "Description"}
+            "output": {"src": "Absolute URL", "alt": "Description"}
         }
     }
 
     params = {
         "api_key": SCRAPINGBEE_API_KEY,
-        "url": target_url,
+        "url": target_url, 
         "block_resources": "false",
-        "render_js": "true", # <-- IMPORTANT : Force le rendu JS pour avoir le DOM final
-        "wait": "5000",      # <-- Augmente un peu (3000 -> 5000) pour laisser le temps aux images de charger
+        "render_js": "true",  # Important pour charger les images JS
+        "wait": "4000",       # On attend un peu plus que le site charge
         "ai_extract_rules": json.dumps(extract_rules)
     }
-    
-    # Assure-toi que l'URL est propre pour Google (juste le domaine)
-    from urllib.parse import urlparse
-    parsed_uri = urlparse(url if url.startswith("http") else f"https://{url}")
-    domain = parsed_uri.netloc # ex: www.apple.com
-    
-    # L'astuce Google Favicon (Qualité HD)
-    google_favicon_url = f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
 
     try:
         response = requests.get("https://app.scrapingbee.com/api/v1", params=params)
         if response.status_code == 200:
             data = response.json()
             
-            # --- PATCH MANUEL DU LOGO ---
-            # On écrase ce que l'IA a trouvé (ou pas trouvé) avec la version HD Google
             if data:
+                # A. APPLICATION FORCÉE DU LOGO GOOGLE
                 data['logo'] = google_favicon_url
                 
-                # --- PATCH MANUEL DES COULEURS (FALLBACK) ---
-                # Si l'IA n'a rien trouvé (liste vide), on met du noir et blanc par défaut
-                # pour éviter que ton UI ne plante.
-                if not data.get('colors'):
-                     data['colors'] = [{"hex_code": "#000000"}, {"hex_code": "#FFFFFF"}]
-                     
+                # B. FALLBACK COULEURS (Si l'IA ne trouve rien, on met du défaut pour éviter le bug d'affichage)
+                if not data.get('colors') or len(data['colors']) == 0:
+                    data['colors'] = [
+                        {"hex_code": "#111827"}, # Dark Gray
+                        {"hex_code": "#3B82F6"}, # Blue
+                        {"hex_code": "#FFFFFF"}  # White
+                    ]
+                
+                # C. NETTOYAGE DES IMAGES (On filtre les placeholders vides)
+                if data.get('images'):
+                    data['images'] = [img for img in data['images'] if img.get('src') and not img.get('src').startswith('data:')]
+
             return data
         return None
     except Exception as e:
-        print(f"Erreur: {e}")
+        print(f"Erreur API: {e}")
         return None
 
 def generate_campaign_strategy(brand_data):
