@@ -1,10 +1,13 @@
 import streamlit as st
 import requests
 import json
-import google.generativeai as old_genai # On renomme l'ancien pour éviter les conflits
-from google import genai as new_genai   # Le nouveau SDK pour la vidéo
 import time
 from urllib.parse import urlparse, urljoin
+
+# --- IMPORT DES 2 LIBRAIRIES GOOGLE (ANCIENNE ET NOUVELLE) ---
+import google.generativeai as old_genai # Pour Texte/Images (Gemini 2.0 Flash / Nano Banana)
+from google import genai                # Pour Vidéo (Veo 3.1)
+from google.genai import types          # Types pour Veo
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="Project One", layout="wide", initial_sidebar_state="collapsed")
@@ -17,7 +20,7 @@ except FileNotFoundError:
     st.error("System Configuration Error: API Keys missing.")
     st.stop()
 
-# Configure Old Gemini (Text/Images)
+# Configure Old Gemini (pour le texte et les images)
 old_genai.configure(api_key=GOOGLE_API_KEY)
 
 # --- CSS: ULTIMATE PREMIUM ---
@@ -26,26 +29,16 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
     /* GLOBAL THEME */
-    .stApp {
-        background-color: #0b0d11; 
-        color: #f0f2f6; 
-        font-family: 'Inter', sans-serif;
-    }
-    
+    .stApp { background-color: #0b0d11; color: #f0f2f6; font-family: 'Inter', sans-serif; }
     h1, h2, h3, h4 { color: #ffffff !important; font-weight: 600; letter-spacing: -0.02em; }
     p, div, label, li { color: #d1d5db; font-size: 1rem; line-height: 1.6; }
 
     /* HEADER */
-    .top-nav {
-        position: fixed; top: 0; left: 0; width: 100%;
-        padding: 15px 30px; background: rgba(11, 13, 17, 0.95);
-        backdrop-filter: blur(10px); z-index: 9999;
-        border-bottom: 1px solid #1f2937; display: flex; align-items: center;
-    }
+    .top-nav { position: fixed; top: 0; left: 0; width: 100%; padding: 15px 30px; background: rgba(11, 13, 17, 0.95); backdrop-filter: blur(10px); z-index: 9999; border-bottom: 1px solid #1f2937; display: flex; align-items: center; }
     .nav-logo { font-weight: 700; font-size: 1.2rem; color: #fff; }
     .nav-badge { background: #3b82f6; color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
 
-    /* INPUT FIELD (BLUE BORDER) */
+    /* INPUT FIELD */
     div[data-baseweb="input"] { border: 1px solid #3b82f6 !important; background-color: #161b22 !important; border-radius: 8px !important; }
     div[data-testid="stTextInput"] input { color: white !important; }
     div[data-baseweb="base-input"] { border-color: #3b82f6 !important; }
@@ -66,7 +59,7 @@ st.markdown("""
     .stButton button, .stLinkButton a { background-color: #3b82f6 !important; color: white !important; border: none !important; border-radius: 4px !important; font-weight: 600 !important; padding: 0.8rem 2rem !important; text-transform: uppercase !important; font-size: 0.85rem !important; transition: 0.3s !important; display: inline-flex !important; justify-content: center !important; align-items: center !important; text-decoration: none !important;}
     .stButton button:hover, .stLinkButton a:hover { background-color: #2563eb !important; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3) !important; color: white !important; }
 
-    /* HEADER & LAYOUT */
+    /* LAYOUT */
     .header-logo-img { width: 80px; height: 80px; object-fit: contain; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background-color: #161b22; padding: 5px; float: right; }
     header { visibility: hidden; }
     .block-container { padding-top: 6rem; }
@@ -139,7 +132,6 @@ def get_brand_data(url):
 
 def generate_campaign_strategy(brand_data):
     try:
-        # Use OLD GenAI for Text
         model = old_genai.GenerativeModel('models/gemini-2.0-flash')
         prompt = f"""
         Act as a Luxury Brand Strategist. Brand: {json.dumps(brand_data)}
@@ -156,12 +148,11 @@ def generate_campaign_strategy(brand_data):
 
 def generate_video_strategy(brand_data):
     try:
-        # Use OLD GenAI for Text
         model = old_genai.GenerativeModel('models/gemini-2.0-flash')
         prompt = f"""
         Act as a Commercial Film Director. Brand: {json.dumps(brand_data)}
         TASK: Create a concept for a high-end social media brand video.
-        Write a precise technical prompt for Veo (Video AI).
+        Write a precise technical prompt for Veo 3.1.
         REQUIREMENTS: Cinematic lighting, 4k, slow motion, drone shot or smooth dolly.
         OUTPUT JSON: {{ "video_title": "...", "video_description": "...", "video_prompt": "Cinematic drone shot of..." }}
         """
@@ -172,7 +163,6 @@ def generate_video_strategy(brand_data):
 
 def generate_social_prompts(brand_data):
     try:
-        # Use OLD GenAI for Text
         model = old_genai.GenerativeModel('models/gemini-2.0-flash')
         prompt = f"""
         Role: Art Director. Brand: {json.dumps(brand_data)}
@@ -190,7 +180,6 @@ def generate_social_prompts(brand_data):
 
 def generate_image_from_prompt(prompt_text, aspect_ratio="16:9"):
     try:
-        # Use OLD GenAI for Images (Nano Banana)
         model = old_genai.GenerativeModel('models/nano-banana-pro-preview')
         ar_prompt = " --aspect_ratio 16:9" if aspect_ratio == "16:9" else " --aspect_ratio 9:16"
         refined = prompt_text + ar_prompt + " . 8k, photorealistic, high fidelity, highly detailed."
@@ -202,37 +191,29 @@ def generate_image_from_prompt(prompt_text, aspect_ratio="16:9"):
 
 def generate_brand_video(prompt_text):
     """
-    Generate video using the NEW 'google-genai' library and Veo 3.1
+    GENERATE VIDEO USING VEO 3.1 (NEW SDK)
     """
     try:
         # Initialisation du client avec le NOUVEAU SDK
-        client = new_genai.Client(api_key=GOOGLE_API_KEY)
+        client = genai.Client(api_key=GOOGLE_API_KEY)
         
         # 1. Start Operation
-        # Note: model="veo-3.1-generate-preview" as requested
         operation = client.models.generate_videos(
-            model="veo-2.0-generate-preview-01-15", # Ou 'veo-3.1-generate-preview' si dispo
+            model="veo-3.1-generate-preview",
             prompt=prompt_text
         )
         
         # 2. Polling Loop
-        # On attend que la video soit prête
         while not operation.done:
             time.sleep(5)
+            # Rafraîchir l'objet opération
             operation = client.operations.get(operation)
             
         # 3. Retrieve Result
         if operation.response and operation.response.generated_videos:
             generated_video = operation.response.generated_videos[0]
             
-            # Pour Streamlit, on veut idéalement les bytes directement ou une URL
-            # La méthode .save() sauvegarde sur le disque serveur.
-            # On va sauvegarder temporairement pour la lire ensuite.
-            temp_filename = "brand_video.mp4"
-            
-            # Download file content
-            # Le SDK permet parfois generated_video.video.download() ou client.files.download()
-            # Selon la doc exacte fournie :
+            # Téléchargement des bytes directement
             video_bytes = client.files.download(file=generated_video.video)
             
             return video_bytes
@@ -241,7 +222,6 @@ def generate_brand_video(prompt_text):
         
     except Exception as e:
         print(f"Veo Error: {e}")
-        # Fallback au cas où ça plante (pour le MVP): générer une image
         return None
 
 def full_screen_loader(text):
@@ -365,7 +345,7 @@ elif st.session_state.step == 3:
             if s_prompts.get('tiktok_final_prompt'):
                 st.session_state.social_images['tiktok'] = generate_image_from_prompt(s_prompts['tiktok_final_prompt'], aspect_ratio="9:16")
         
-        # 3. Video (VEO REAL)
+        # 3. Video (VEO 3.1 REAL)
         if not st.session_state.video_data:
             v_strat = generate_video_strategy(st.session_state.brand_data)
             st.session_state.video_data['strategy'] = v_strat
@@ -394,7 +374,7 @@ elif st.session_state.step == 3:
     if st.session_state.video_data:
         v = st.session_state.video_data
         st.markdown("<br><h2 style='text-align:center;'>Signature Video Campaign</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align:center; color:#6b7280; margin-bottom: 20px;'>High-End Social Media Commercial (Veo 4K)</p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align:center; color:#6b7280; margin-bottom: 20px;'>High-End Social Media Commercial (Veo 3.1)</p>", unsafe_allow_html=True)
         
         v1, v2 = st.columns([1, 1.5], gap="large", vertical_alignment="center")
         with v1:
@@ -407,7 +387,7 @@ elif st.session_state.step == 3:
             if v.get('file_bytes'):
                 st.video(v['file_bytes'], format="video/mp4")
             else:
-                st.info("Video generation unavailable or restricted by safety filters.")
+                st.info("Video generation unavailable (API Limit or Safety Filter).")
         st.markdown("---")
 
     # Social Section
